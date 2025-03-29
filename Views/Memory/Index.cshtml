@@ -1,0 +1,187 @@
+﻿@{
+    ViewData["Title"] = "Gra Memory";
+}
+
+<div class="container">
+    <h2>Sieciowa gra Memory</h2>
+    <div id="playerSetup" style="display: block;">
+        <input type="text" id="playerName" placeholder="Wpisz swój nick:" />
+        <div id="imageUpload" style="display: block;">
+            <h4>Wgraj obrazki dla kart (min. 2)</h4>
+            <input type="file" id="imageFiles" multiple accept="image/*" />
+        </div>
+        <button id="startButton" class="btn btn-primary mt-3">Rozpocznij grę z własnymi obrazkami</button>
+        <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
+    </div>
+    <div id="waitingMessage" style="display: none;">Oczekiwanie na drugiego gracza...</div>
+    <div id="gameInfo" style="display: none;">
+        <div id="players"></div>
+        <div id="turnInfo"></div>
+        <div id="gameBoard" class="game-board"></div>
+        <div id="moves">Liczba ruchów: 0</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/memoryHub", { transport: signalR.HttpTransportType.WebSockets })
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        let game = null;
+        let myConnectionId = null;
+
+        connection.start()
+            .then(() => {
+                console.log("SignalR connected!");
+                myConnectionId = connection.connectionId;
+            })
+            .catch(err => console.error("SignalR connection error:", err));
+
+        document.getElementById("startButton").addEventListener("click", async () => {
+            const playerName = document.getElementById("playerName").value;
+            const imageFiles = document.getElementById("imageFiles").files;
+
+            if (!playerName) {
+                alert("Wpisz swój nick.");
+                return;
+            }
+
+            if (imageFiles.length === 0) {
+                alert("Załącz co najmniej 2 obrazki.");
+                return;
+            }
+
+            const formData = new FormData();
+            for (let i = 0; i < imageFiles.length; i++) {
+                formData.append("images", imageFiles[i]);
+            }
+
+            const response = await fetch("/Memory/UploadImages", {
+                method: "POST",
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                connection.invoke("StartGameWithImages", playerName, result.imagePaths);
+            } else {
+                alert(result.message);
+            }
+        });
+
+        document.getElementById("joinButton").addEventListener("click", () => {
+            const playerName = document.getElementById("playerName").value;
+            if (playerName) {
+                document.getElementById("imageUpload").style.display = "none";
+                connection.invoke("JoinGame", playerName);
+            } else {
+                alert("Wpisz swój nick.");
+            }
+        });
+
+        connection.on("NoGameAvailable", (message) => {
+            alert(message);
+            window.location.reload();
+        });
+
+        connection.on("WaitingForOpponent", (gameData) => {
+            game = gameData;
+            document.getElementById("playerSetup").style.display = "none";
+            document.getElementById("waitingMessage").style.display = "block";
+        });
+
+        connection.on("GameStarted", (gameData) => {
+            game = gameData;
+            document.getElementById("playerSetup").style.display = "none";
+            document.getElementById("waitingMessage").style.display = "none";
+            document.getElementById("gameInfo").style.display = "block";
+            renderGame();
+        });
+
+        connection.on("GameUpdated", (gameData) => {
+            game = gameData;
+            renderGame();
+        });
+
+        connection.on("CardFlipped", (gameData) => {
+            game = gameData;
+            renderGame();
+        });
+
+        connection.on("NotYourTurn", () => {
+            alert("Nie twoja kolej!");
+        });
+
+        connection.on("GameOver", (gameData) => {
+            game = gameData;
+            renderGame();
+            const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
+            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+        });
+
+        connection.on("PlayerDisconnected", (playerName) => {
+            alert(`${playerName} rozłączył się. Koniec gry.`);
+            window.location.reload();
+        });
+
+        function renderGame() {
+            const gameBoard = document.getElementById("gameBoard");
+            gameBoard.innerHTML = "";
+            document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
+
+            const playersDiv = document.getElementById("players");
+            playersDiv.innerHTML = "Gracze: " + game.players.map(p => `${p.name}: ${p.score}`).join(", ");
+
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnInfo = document.getElementById("turnInfo");
+            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+
+            game.cards.forEach(card => {
+                const cardElement = document.createElement("div");
+                cardElement.className = "kart" + (card.isMatched ? " dopasowanych" : "");
+                if (card.isFlipped || card.isMatched) {
+                    const img = document.createElement("img");
+                    img.src = card.imagePath;
+                    img.style.width = "100%";
+                    img.style.height = "100%";
+                    cardElement.appendChild(img);
+                } else {
+                    cardElement.innerHTML = "?";
+                }
+                cardElement.onclick = () => {
+                    if (!card.isFlipped && !card.isMatched) {
+                        connection.invoke("FlipCard", game.gameId, card.id);
+                    }
+                };
+                gameBoard.appendChild(cardElement);
+            });
+        }
+    </script>
+}
+
+<style>
+    .game-board {
+        display: grid;
+        grid-template-columns: repeat(4, 100px);
+        gap: 10px;
+        margin: 20px 0;
+    }
+
+    .card {
+        width: 100px;
+        height: 100px;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .matched {
+        background: #90ee90;
+    }
+</style>
