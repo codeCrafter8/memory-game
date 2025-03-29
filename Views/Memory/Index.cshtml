@@ -141,7 +141,7 @@
 
             game.cards.forEach(card => {
                 const cardElement = document.createElement("div");
-                cardElement.className = "kart" + (card.isMatched ? " dopasowanych" : "");
+                cardElement.className = "card" + (card.isMatched ? "matched" : "");
                 if (card.isFlipped || card.isMatched) {
                     const img = document.createElement("img");
                     img.src = card.imagePath;

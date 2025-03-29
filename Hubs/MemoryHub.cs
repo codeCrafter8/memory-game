@@ -25,7 +25,12 @@ namespace MemoryGame.Hubs
             game.Players.Add(player);
             game.CurrentPlayerId = player.ConnectionId;
 
+            var ipAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString() ?? "(nieznane IP)";
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz o ID {Context.ConnectionId} ({playerName}) z IP {ipAddress} przesłał zestaw {imagePaths.Count} kart.");
+
             await Groups.AddToGroupAsync(Context.ConnectionId, game.GameId);
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat WaitingForOpponent do gracza {playerName} (ID: {Context.ConnectionId}).");
             await Clients.Group(game.GameId).SendAsync("WaitingForOpponent", game);
         }
 
@@ -34,6 +39,7 @@ namespace MemoryGame.Hubs
             var game = Games.Values.FirstOrDefault(g => g.Players.Count < 2 && !g.IsGameOver);
             if (game == null)
             {
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz o ID {Context.ConnectionId} ({playerName}) próbował dołączyć, ale nie ma dostępnych gier.");
                 await Clients.Caller.SendAsync("NoGameAvailable", "Brak dostępnej gry. Dodaj zestaw kart i utwórz nową rozgrywkę.");
                 return;
             }
@@ -46,11 +52,18 @@ namespace MemoryGame.Hubs
             };
             game.Players.Add(player);
 
+            var ipAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString() ?? "(nieznane IP)";
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz o ID {Context.ConnectionId} ({playerName}) z IP {ipAddress} dołączył do gry {game.GameId}.");
+
             await Groups.AddToGroupAsync(Context.ConnectionId, game.GameId);
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameUpdated do grupy {game.GameId}.");
             await Clients.Group(game.GameId).SendAsync("GameUpdated", game);
 
             if (game.Players.Count == 2)
             {
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gra {game.GameId} rozpoczęta z 2 graczami.");
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameStarted do grupy {game.GameId}.");
                 await Clients.Group(game.GameId).SendAsync("GameStarted", game);
             }
         }
@@ -63,6 +76,8 @@ namespace MemoryGame.Hubs
 
             if (game.CurrentPlayerId != Context.ConnectionId)
             {
+                var player = game.Players.First(p => p.ConnectionId == Context.ConnectionId);
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {player.Name} (ID: {Context.ConnectionId}) próbował odkryć kartę, ale to nie jego tura.");
                 await Clients.Caller.SendAsync("NotYourTurn");
                 return;
             }
@@ -72,6 +87,11 @@ namespace MemoryGame.Hubs
 
             card.IsFlipped = true;
             game.Moves++;
+
+            var currentPlayer = game.Players.First(p => p.ConnectionId == Context.ConnectionId);
+            var ipAddress = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString() ?? "(nieznane IP)";
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {currentPlayer.Name} (ID: {Context.ConnectionId}) z IP {ipAddress} odkrył kartę o ID {cardId}.");
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat CardFlipped do grupy {game.GameId}.");
 
             await Clients.Group(gameId).SendAsync("CardFlipped", game);
 
@@ -84,6 +104,8 @@ namespace MemoryGame.Hubs
             if (game.Cards.All(c => c.IsMatched))
             {
                 game.IsGameOver = true;
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gra {game.GameId} zakończona.");
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameOver do grupy {game.GameId}.");
                 await Clients.Group(gameId).SendAsync("GameOver", game);
             }
         }
@@ -121,14 +143,17 @@ namespace MemoryGame.Hubs
             {
                 flippedCards.ForEach(c => c.IsMatched = true);
                 currentPlayer.Score++;
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {currentPlayer.Name} (ID: {currentPlayer.ConnectionId}) dopasował parę kart. Wynik: {currentPlayer.Score}.");
             }
             else
             {
                 flippedCards.ForEach(c => c.IsFlipped = false);
                 var nextPlayer = game.Players.First(p => p.ConnectionId != game.CurrentPlayerId);
                 game.CurrentPlayerId = nextPlayer.ConnectionId;
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Zmiana tury. Teraz tura gracza {nextPlayer.Name} (ID: {nextPlayer.ConnectionId}).");
             }
 
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat CardFlipped do grupy {game.GameId} po sprawdzeniu dopasowania.");
             await Clients.Group(gameId).SendAsync("CardFlipped", game);
         }
 
@@ -139,9 +164,12 @@ namespace MemoryGame.Hubs
             {
                 var player = game.Players.First(p => p.ConnectionId == Context.ConnectionId);
                 game.Players.Remove(player);
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {player.Name} (ID: {Context.ConnectionId}) rozłączył się.");
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat PlayerDisconnected do grupy {game.GameId}.");
                 await Clients.Group(game.GameId).SendAsync("PlayerDisconnected", player.Name);
                 if (game.Players.Count == 0)
                 {
+                    Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gra {game.GameId} została usunięta, brak graczy.");
                     Games.Remove(game.GameId);
                 }
             }
