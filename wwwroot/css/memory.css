@@ -1,0 +1,89 @@
+﻿.game-board {
+    display: grid;
+    grid-template-columns: repeat(4, var(--normal-card));
+    padding: 1rem;
+    gap: 10px;
+    margin: 20px auto;
+    width: calc(100vw - 40px);
+    max-width: 600px;
+}
+
+.card {
+    width: var(--normal-card);
+    height: var(--normal-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #f5f5dc, #ffffff);
+    border: 2px solid black;
+    border-radius: 16px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.matched {
+    background: #90ee90;
+}
+
+.hidden {
+    display: none;
+}
+
+#players {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 3rem;
+    gap: 1rem;
+}
+
+.player {
+    flex: 1;
+    border: 1px solid black;
+    border-radius: 1rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.player-label {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    color: black;
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 2rem;
+    color: white;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.upload-file {
+    border: 1px solid purple;
+    display: inline-block;
+    padding: .5rem 1rem;
+    cursor: pointer;
+    color: white;
+    background: black;
+    border-radius: 1rem;
+    letter-spacing: 1px;
+}
+
+@media (max-width: 600px) {
+    .game-board {
+        grid-template-columns: repeat(4, var(--small-card));
+    }
+
+    .card {
+        width: var(--small-card);
+        height: var(--small-card);
+    }
+}

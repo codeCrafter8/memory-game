@@ -1,3 +1,10 @@
+:root {
+    --fs-text: 140px;
+    --normal-card: 130px;
+    --small-card: 100px;
+}
+
+
 html {
   font-size: 14px;
 }

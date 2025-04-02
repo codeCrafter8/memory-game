@@ -1,23 +1,60 @@
 ﻿@{
     ViewData["Title"] = "Gra Memory";
-}
+   }
+
+<link href="css/memory.css" rel="stylesheet" />
+
 
 <div class="container">
-    <h2>Sieciowa gra Memory</h2>
-    <div id="playerSetup" style="display: block;">
-        <input type="text" id="playerName" placeholder="Wpisz swój nick:" />
-        <div id="imageUpload" style="display: block;">
-            <h4>Wgraj obrazki dla kart (min. 2)</h4>
-            <input type="file" id="imageFiles" multiple accept="image/*" />
-        </div>
-        <button id="startButton" class="btn btn-primary mt-3">Rozpocznij grę z własnymi obrazkami</button>
-        <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
+    <h2 style="text-align: center; text-transform: uppercase; letter-spacing: 1px">Sieciowa gra Memory</h2>
+    <div id="playerSetup" style="display: block; margin-top: 2rem">
+        <label style="letter-spacing: 1px" for="playerName">Wpisz swój nick: </label>
+        <input type="text" id="playerName"  style="border-radius: 1rem; padding: .5rem 1rem; letter-spacing: 1px;"/>
+        <section id="imageUpload" style="margin-top: 2rem; display: block;">
+          
+            <span>Wgraj obrazki dla kart (min. 2)</span>
+
+            <label for="imageFiles" class="upload-file">
+                Wgraj karty
+            </label>
+            <input id="imageFiles" type="file" multiple accept="image/*" />
+
+
+        </section>
+
+
+        <section style="margin-top: 2rem; display: flex; gap: 1rem">
+            <button id="startButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-primary mt-3">Rozpocznij grę z własnymi obrazkami</button>
+            <button id="joinButton" style="border-radius: 1rem;  padding: 0.5rem 1rem;" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
+        </section>
+
     </div>
-    <div id="waitingMessage" style="display: none;">Oczekiwanie na drugiego gracza...</div>
+    <div id="waitingMessage" style="display: none; margin-top: 2rem"><span style="letter-spacing: 1px;">Oczekiwanie na drugiego gracza...</span></div>
     <div id="gameInfo" style="display: none;">
-        <div id="players"></div>
+
+        <div id="players">
+            <div style="border: 1px solid blue" class="player player-1">
+                <div class="player-label">Gracz 1</div>
+                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
+                <div class="player-name"></div>
+                <div style="color: blue" class="player-score"></div>
+                </div>
+            </div>
+            <div style="border: 1px solid orange" class="player player-2">
+                <div class="player-label">Gracz 2</div>
+                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
+
+
+                    <div style="color: orange" class="player-score"></div>
+                <div class="player-name"></div>
+                </div>
+            </div>
+        </div>
+
         <div id="turnInfo"></div>
-        <div id="gameBoard" class="game-board"></div>
+
+            <div id="gameBoard" class="game-board"></div>
+
         <div id="moves">Liczba ruchów: 0</div>
     </div>
 </div>
@@ -113,6 +150,7 @@
 
         connection.on("NotYourTurn", () => {
             alert("Nie twoja kolej!");
+                
         });
 
         connection.on("GameOver", (gameData) => {
@@ -132,8 +170,16 @@
             gameBoard.innerHTML = "";
             document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
 
-            const playersDiv = document.getElementById("players");
-            playersDiv.innerHTML = "Gracze: " + game.players.map(p => `${p.name}: ${p.score}`).join(", ");
+        const playersDiv = document.getElementById("players");
+        const playerElements = playersDiv.querySelectorAll(".player");
+
+        game.players.forEach((p, i) => {
+          const playerElement = playerElements[i];
+          playerElement.querySelector(".player-name").textContent = p.name;
+          playerElement.querySelector(".player-score").textContent = p.score;
+        });
+
+
 
             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
             const turnInfo = document.getElementById("turnInfo");
@@ -162,26 +208,3 @@
     </script>
 }
 
-<style>
-    .game-board {
-        display: grid;
-        grid-template-columns: repeat(4, 100px);
-        gap: 10px;
-        margin: 20px 0;
-    }
-
-    .card {
-        width: 100px;
-        height: 100px;
-        background: #f0f0f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        cursor: pointer;
-    }
-
-    .matched {
-        background: #90ee90;
-    }
-</style>
