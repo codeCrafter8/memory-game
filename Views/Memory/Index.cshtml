@@ -7,27 +7,29 @@
 
 <div class="container">
     <h2 style="text-align: center; text-transform: uppercase; letter-spacing: 1px">Sieciowa gra Memory</h2>
-    <div id="playerSetup" style="display: block; margin-top: 2rem">
-        <label style="letter-spacing: 1px" for="playerName">Wpisz swój nick: </label>
-        <input type="text" id="playerName"  style="border-radius: 1rem; padding: .5rem 1rem; letter-spacing: 1px;"/>
-        <section id="imageUpload" style="margin-top: 2rem; display: block;">
-          
-            <span>Wgraj obrazki dla kart (min. 2)</span>
-
-            <label for="imageFiles" class="upload-file">
-                Wgraj karty
-            </label>
-            <input id="imageFiles" type="file" multiple accept="image/*" />
-
-
-        </section>
-
-
-        <section style="margin-top: 2rem; display: flex; gap: 1rem">
-            <button id="startButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-primary mt-3">Rozpocznij grę z własnymi obrazkami</button>
-            <button id="joinButton" style="border-radius: 1rem;  padding: 0.5rem 1rem;" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
-        </section>
-
+    <div id="playerSetup" class="setup-container">
+        <input type="text" id="playerName" placeholder="Enter your name" />
+        <div id="cardSetSelection" style="display: block;">
+            <h4>Wybierz zestaw kart lub utwórz nowy</h4>
+            <div id="cardSetsList"></div>
+            <button id="createNewSetButton" class="btn btn-secondary mt-3">Utwórz nowy zestaw kart</button>
+            <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
+        </div>
+        <div id="newSetForm" style="display: none;">
+            <h4>Utwórz nowy zestaw kart</h4>
+            <input type="text" id="setName" placeholder="Enter set name" />
+            <input type="file" id="imageFiles" multiple accept="image/*" />
+            <button id="uploadSetButton" class="btn btn-primary mt-3">Prześlij i zapisz zestaw</button>
+            <button id="cancelNewSetButton" class="btn btn-secondary mt-3">Anuluj</button>
+        </div>
+        <div id="cardSelection" style="display: none;">
+            <h4>Wybierz karty z zestawu</h4>
+            <div id="cardsPreview" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+            <div style="margin-top: 1rem;">
+                <button id="startWithSelectedCardsButton" class="btn btn-primary">Rozpocznij grę z wybranymi kartami</button>
+                <button id="backToSetsButton" class="btn btn-secondary">Cofnij</button>
+            </div>
+        </div>
     </div>
     <div id="waitingMessage" style="display: none; margin-top: 2rem"><span style="letter-spacing: 1px;">Oczekiwanie na drugiego gracza...</span></div>
     <div id="gameInfo" style="display: none;">
@@ -69,16 +71,81 @@
 
         let game = null;
         let myConnectionId = null;
+        let selectedSet = null;
+        let selectedCards = [];
 
         connection.start()
             .then(() => {
-                console.log("SignalR connected!");
+                console.log("SignalR Connected!");
                 myConnectionId = connection.connectionId;
+                loadCardSets();
             })
-            .catch(err => console.error("SignalR connection error:", err));
+            .catch(err => console.error("SignalR Connection Error:", err));
 
-        document.getElementById("startButton").addEventListener("click", async () => {
+        async function loadCardSets() {
+            const response = await fetch("/Memory/GetCardSets");
+            const cardSets = await response.json();
+            const cardSetsList = document.getElementById("cardSetsList");
+            cardSetsList.innerHTML = "";
+
+            cardSets.forEach(set => {
+                const setElement = document.createElement("div");
+                setElement.className = "card-set";
+                const firstImage = set.imagePaths.length > 0 ? set.imagePaths[0] : "/images/placeholder.png"; // Placeholder, jeśli brak obrazka
+                setElement.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <img src="${firstImage}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />
+                        <h5 style="margin: 0;">${set.name}</h5>
+                    </div>
+                    <button class="btn btn-primary">Wybierz zestaw</button>
+                `;
+                setElement.querySelector("button").addEventListener("click", () => {
+                    selectedSet = set;
+                    showCardSelection(set);
+                });
+                cardSetsList.appendChild(setElement);
+            });
+        }
+
+        function showCardSelection(set) {
+            document.getElementById("cardSetSelection").style.display = "none";
+            document.getElementById("cardSelection").style.display = "block";
+            const cardsPreview = document.getElementById("cardsPreview");
+            cardsPreview.innerHTML = "";
+            selectedCards = [];
+
+            set.imagePaths.forEach((imagePath, index) => {
+                const cardElement = document.createElement("div");
+                cardElement.className = "card-preview";
+                cardElement.innerHTML = `
+                    <img src="${imagePath}" style="width: 100px; height: 100px;" />
+                    <input type="checkbox" data-index="${index}" />
+                `;
+                cardElement.querySelector("input").addEventListener("change", (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    if (e.target.checked) {
+                        selectedCards.push(imagePath);
+                    } else {
+                        selectedCards = selectedCards.filter(path => path !== imagePath);
+                    }
+                });
+                cardsPreview.appendChild(cardElement);
+            });
+        }
+
+        document.getElementById("createNewSetButton").addEventListener("click", () => {
+            document.getElementById("cardSetSelection").style.display = "none";
+            document.getElementById("newSetForm").style.display = "block";
+        });
+
+        document.getElementById("cancelNewSetButton").addEventListener("click", () => {
+            document.getElementById("newSetForm").style.display = "none";
+            document.getElementById("cardSetSelection").style.display = "block";
+        });
+
+        document.getElementById("uploadSetButton").addEventListener("click", async () => {
             const playerName = document.getElementById("playerName").value;
+            const setName = document.getElementById("setName").value;
             const imageFiles = document.getElementById("imageFiles").files;
 
             if (!playerName) {
@@ -86,8 +153,13 @@
                 return;
             }
 
-            if (imageFiles.length === 0) {
-                alert("Załącz co najmniej 2 obrazki.");
+            if (!setName) {
+                alert("Wpisz nazwę zestawu.");
+                return;
+            }
+
+            if (imageFiles.length < 2) {
+                alert("Dodaj przynajmniej 2 obrazki.");
                 return;
             }
 
@@ -95,6 +167,7 @@
             for (let i = 0; i < imageFiles.length; i++) {
                 formData.append("images", imageFiles[i]);
             }
+            formData.append("setName", setName);
 
             const response = await fetch("/Memory/UploadImages", {
                 method: "POST",
@@ -103,16 +176,30 @@
             const result = await response.json();
 
             if (result.success) {
-                connection.invoke("StartGameWithImages", playerName, result.imagePaths);
+                selectedSet = { id: result.setId, imagePaths: result.imagePaths };
+                selectedCards = result.imagePaths;
+                document.getElementById("newSetForm").style.display = "none";
+                document.getElementById("cardSelection").style.display = "block";
+                showCardSelection(selectedSet);
             } else {
                 alert(result.message);
             }
         });
 
+        document.getElementById("startWithSelectedCardsButton").addEventListener("click", () => {
+            const playerName = document.getElementById("playerName").value;
+            if (selectedCards.length < 2) {
+                alert("Wybierz co najmniej dwie karty, aby rozpocząć grę.");
+                return;
+            }
+            connection.invoke("StartGameWithImages", playerName, selectedCards);
+        });
+
         document.getElementById("joinButton").addEventListener("click", () => {
             const playerName = document.getElementById("playerName").value;
             if (playerName) {
-                document.getElementById("imageUpload").style.display = "none";
+                document.getElementById("cardSetSelection").style.display = "none";
+                document.getElementById("cardSelection").style.display = "none";
                 connection.invoke("JoinGame", playerName);
             } else {
                 alert("Wpisz swój nick.");
@@ -124,18 +211,50 @@
             window.location.reload();
         });
 
+        function resetInterface() {
+            const playerSetup = document.getElementById("playerSetup");
+            const waitingMessage = document.getElementById("waitingMessage");
+            const gameInfo = document.getElementById("gameInfo");
+            const cardSetSelection = document.getElementById("cardSetSelection");
+            const newSetForm = document.getElementById("newSetForm");
+            const cardSelection = document.getElementById("cardSelection");
+
+            if (playerSetup) playerSetup.style.display = "block";
+            if (waitingMessage) waitingMessage.style.display = "none";
+            if (gameInfo) gameInfo.style.display = "none";
+            if (cardSetSelection) cardSetSelection.style.display = "block";
+            if (newSetForm) newSetForm.style.display = "none";
+            if (cardSelection) cardSelection.style.display = "none";
+            
+            const cardsPreview = document.getElementById("cardsPreview");
+            if (cardsPreview) cardsPreview.innerHTML = "";
+        }
+
         connection.on("WaitingForOpponent", (gameData) => {
             game = gameData;
-            document.getElementById("playerSetup").style.display = "none";
-            document.getElementById("waitingMessage").style.display = "block";
+            const playerSetup = document.getElementById("playerSetup");
+            const waitingMessage = document.getElementById("waitingMessage");
+            const cardSelection = document.getElementById("cardSelection");
+
+            if (playerSetup) playerSetup.style.display = "none";
+            if (waitingMessage) waitingMessage.style.display = "block";
+            if (cardSelection) cardSelection.style.display = "none";
         });
 
         connection.on("GameStarted", (gameData) => {
             game = gameData;
-            document.getElementById("playerSetup").style.display = "none";
-            document.getElementById("waitingMessage").style.display = "none";
-            document.getElementById("gameInfo").style.display = "block";
-            renderGame();
+            const playerSetup = document.getElementById("playerSetup");
+            const waitingMessage = document.getElementById("waitingMessage");
+            const gameInfo = document.getElementById("gameInfo");
+
+            if (playerSetup) playerSetup.style.display = "none";
+            if (waitingMessage) waitingMessage.style.display = "none";
+            if (gameInfo) {
+                gameInfo.style.display = "block";
+                renderGame();
+            } else {
+                console.error("Element gameInfo not found");
+            }
         });
 
         connection.on("GameUpdated", (gameData) => {
@@ -149,15 +268,14 @@
         });
 
         connection.on("NotYourTurn", () => {
-            alert("Nie twoja kolej!");
-                
+            alert("To nie twój ruch!");
         });
 
         connection.on("GameOver", (gameData) => {
             game = gameData;
             renderGame();
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty ${winner.score}! Ruchy: ${game.moves}`);
         });
 
         connection.on("PlayerDisconnected", (playerName) => {
@@ -168,26 +286,57 @@
         function renderGame() {
             const gameBoard = document.getElementById("gameBoard");
             gameBoard.innerHTML = "";
-            document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
+            document.getElementById("moves").textContent = `Liczba ruchów: ${game.moves}`;
 
-        const playersDiv = document.getElementById("players");
-        const playerElements = playersDiv.querySelectorAll(".player");
+            // Aktualizacja graczy
+            const player1Div = document.querySelector(".player-1");
+            const player2Div = document.querySelector(".player-2");
 
-        game.players.forEach((p, i) => {
-          const playerElement = playerElements[i];
-          playerElement.querySelector(".player-name").textContent = p.name;
-          playerElement.querySelector(".player-score").textContent = p.score;
-        });
-
-
+            if (game.players.length >= 1) {
+                const player1 = game.players[0];
+                player1Div.querySelector(".player-name").textContent = player1.name;
+                player1Div.querySelector(".player-score").textContent = player1.score;
+            }
+            if (game.players.length >= 2) {
+                const player2 = game.players[1];
+                player2Div.querySelector(".player-name").textContent = player2.name;
+                player2Div.querySelector(".player-score").textContent = player2.score;
+            }
 
             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
             const turnInfo = document.getElementById("turnInfo");
-            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+            turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
+
+            const gameBoardRect = gameBoard.getBoundingClientRect();
+            const gameBoardWidth = gameBoardRect.width;
+            const gameBoardHeight = gameBoardRect.height;
+            const totalCards = game.cards.length;
+
+            const aspectRatio = gameBoardWidth / gameBoardHeight;
+            const sqrtCards = Math.sqrt(totalCards);
+            let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
+            let rows = Math.ceil(totalCards / cols);
+
+            while (cols * rows < totalCards) {
+                cols++;
+                rows = Math.ceil(totalCards / cols);
+            }
+
+            const gap = 5;
+            const totalGapWidth = (cols - 1) * gap;
+            const totalGapHeight = (rows - 1) * gap;
+            const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
+            const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
+            const cardSize = Math.min(cardWidth, cardHeight);
+
+            gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
+            gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
 
             game.cards.forEach(card => {
                 const cardElement = document.createElement("div");
-                cardElement.className = "card" + (card.isMatched ? "matched" : "");
+                cardElement.className = "card" + (card.isMatched ? " matched" : "");
+                cardElement.style.width = `${cardSize}px`;
+                cardElement.style.height = `${cardSize}px`;
                 if (card.isFlipped || card.isMatched) {
                     const img = document.createElement("img");
                     img.src = card.imagePath;
@@ -205,6 +354,118 @@
                 gameBoard.appendChild(cardElement);
             });
         }
+
+        document.getElementById("backToSetsButton").addEventListener("click", () => {
+            selectedSet = null;
+            selectedCards = [];
+            resetInterface();
+        });
+
+        window.addEventListener("resize", () => {
+            if (game) {
+                renderGame();
+            }
+        });
     </script>
 }
 
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    .main-container {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        width: 100vw;
+        box-sizing: border-box;
+        padding: 10px;
+    }
+
+    .setup-container {
+        text-align: center;
+        padding: 20px;
+    }
+
+    #gameInfo {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        overflow: hidden;
+    }
+
+    #players {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+        background: #f8f8f8;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .player {
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    .player-label {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .game-board {
+        flex: 1;
+        display: grid;
+        gap: 5px;
+        padding: 10px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .card {
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .matched {
+        background: #90ee90;
+    }
+
+    #waitingMessage {
+        text-align: center;
+        padding: 20px;
+    }
+
+    .card-set {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f9f9f9;
+    }
+
+    .card-set:hover {
+        background: #f0f0f0;
+    }
+
+    .card-preview {
+        display: inline-block;
+        text-align: center;
+    }
+</style>
