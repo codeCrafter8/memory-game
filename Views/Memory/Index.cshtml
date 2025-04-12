@@ -32,7 +32,7 @@
 
     <div id="waitingMessage" style="display: none; margin-top: 2rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
-            <button id="startGameManually" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+            <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
         </div>
         <div id="waitingForHost" style="margin-top: 1rem; display: none;">
             <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
@@ -42,27 +42,8 @@
     <div id="gameInfo" style="display: none;">
 
         <div id="players" style="margin-bottom: 1.5rem;">
-            <!-- Dynamiczne generowanie graczy - będzie wypełnione przez JavaScript -->
+            <!-- Dynamic player generation - will be filled by JavaScript -->
         </div>
-
-        @* <div id="players">
-            <div style="border: 1px solid blue" class="player player-1">
-                <div class="player-label">Gracz 1</div>
-                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
-                <div class="player-name"></div>
-                <div style="color: blue" class="player-score"></div>
-                </div>
-            </div>
-            <div style="border: 1px solid orange" class="player player-2">
-                <div class="player-label">Gracz 2</div>
-                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
-
-
-                    <div style="color: orange" class="player-score"></div>
-                <div class="player-name"></div>
-                </div>
-            </div>
-        </div> *@
 
         <div id="turnInfo"></div>
 
@@ -135,7 +116,7 @@
             }
         });
 
-        document.getElementById("startGameManually").addEventListener("click", () => {
+        document.getElementById("startGameManuallyButton").addEventListener("click", () => {
             if (game && isHost) {
                 connection.invoke("StartGameManually", game.gameId);
             }
