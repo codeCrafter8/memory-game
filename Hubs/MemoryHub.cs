@@ -36,7 +36,7 @@ namespace MemoryGame.Hubs
 
         public async Task JoinGame(string playerName)
         {
-            var game = Games.Values.FirstOrDefault(g => g.Players.Count < 2 && !g.IsGameOver);
+            var game = Games.Values.FirstOrDefault(g => !g.IsGameOver);
             if (game == null)
             {
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz o ID {Context.ConnectionId} ({playerName}) próbował dołączyć, ale nie ma dostępnych gier.");
@@ -57,15 +57,8 @@ namespace MemoryGame.Hubs
 
             await Groups.AddToGroupAsync(Context.ConnectionId, game.GameId);
 
-            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameUpdated do grupy {game.GameId}.");
-            await Clients.Group(game.GameId).SendAsync("GameUpdated", game);
-
-            if (game.Players.Count == 2)
-            {
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gra {game.GameId} rozpoczęta z 2 graczami.");
-                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameStarted do grupy {game.GameId}.");
-                await Clients.Group(game.GameId).SendAsync("GameStarted", game);
-            }
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat WaitingForOpponent do grupy {game.GameId}.");
+            await Clients.Group(game.GameId).SendAsync("WaitingForOpponent", game);
         }
 
         public async Task FlipCard(string gameId, int cardId)
@@ -148,8 +141,12 @@ namespace MemoryGame.Hubs
             else
             {
                 flippedCards.ForEach(c => c.IsFlipped = false);
-                var nextPlayer = game.Players.First(p => p.ConnectionId != game.CurrentPlayerId);
+
+                int currentIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+                int nextIndex = (currentIndex + 1) % game.Players.Count;
+                var nextPlayer = game.Players[nextIndex];
                 game.CurrentPlayerId = nextPlayer.ConnectionId;
+
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Zmiana tury. Teraz tura gracza {nextPlayer.Name} (ID: {nextPlayer.ConnectionId}).");
             }
 
@@ -175,5 +172,16 @@ namespace MemoryGame.Hubs
             }
             await base.OnDisconnectedAsync(exception);
         }
+
+        public async Task StartGameManually(string gameId)
+        {
+            if (!Games.TryGetValue(gameId, out var game)) return;
+
+            game.CurrentPlayerId = game.Players.FirstOrDefault()?.ConnectionId;
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Host uruchamia grę {gameId}.");
+            await Clients.Group(gameId).SendAsync("GameStarted", game);
+        }
+
     }
 }

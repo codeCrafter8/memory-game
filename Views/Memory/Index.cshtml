@@ -29,10 +29,23 @@
         </section>
 
     </div>
-    <div id="waitingMessage" style="display: none; margin-top: 2rem"><span style="letter-spacing: 1px;">Oczekiwanie na drugiego gracza...</span></div>
+
+    <div id="waitingMessage" style="display: none; margin-top: 2rem">
+        <div id="hostControls" style="margin-top: 1rem; display: none;">
+            <button id="startGameManually" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+        </div>
+        <div id="waitingForHost" style="margin-top: 1rem; display: none;">
+            <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
+        </div>
+    </div>
+
     <div id="gameInfo" style="display: none;">
 
-        <div id="players">
+        <div id="players" style="margin-bottom: 1.5rem;">
+            <!-- Dynamiczne generowanie graczy - będzie wypełnione przez JavaScript -->
+        </div>
+
+        @* <div id="players">
             <div style="border: 1px solid blue" class="player player-1">
                 <div class="player-label">Gracz 1</div>
                 <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
@@ -49,7 +62,7 @@
                 <div class="player-name"></div>
                 </div>
             </div>
-        </div>
+        </div> *@
 
         <div id="turnInfo"></div>
 
@@ -69,6 +82,7 @@
 
         let game = null;
         let myConnectionId = null;
+        let isHost = false;
 
         connection.start()
             .then(() => {
@@ -86,7 +100,7 @@
                 return;
             }
 
-            if (imageFiles.length === 0) {
+            if (imageFiles.length < 2) {
                 alert("Załącz co najmniej 2 obrazki.");
                 return;
             }
@@ -104,6 +118,7 @@
 
             if (result.success) {
                 connection.invoke("StartGameWithImages", playerName, result.imagePaths);
+                isHost = true;
             } else {
                 alert(result.message);
             }
@@ -114,8 +129,15 @@
             if (playerName) {
                 document.getElementById("imageUpload").style.display = "none";
                 connection.invoke("JoinGame", playerName);
+                isHost = false;
             } else {
                 alert("Wpisz swój nick.");
+            }
+        });
+
+        document.getElementById("startGameManually").addEventListener("click", () => {
+            if (game && isHost) {
+                connection.invoke("StartGameManually", game.gameId);
             }
         });
 
@@ -128,6 +150,12 @@
             game = gameData;
             document.getElementById("playerSetup").style.display = "none";
             document.getElementById("waitingMessage").style.display = "block";
+
+            if (isHost) {
+                document.getElementById("hostControls").style.display = "block";
+            } else {
+                document.getElementById("waitingForHost").style.display = "block";
+            }
         });
 
         connection.on("GameStarted", (gameData) => {
@@ -135,11 +163,6 @@
             document.getElementById("playerSetup").style.display = "none";
             document.getElementById("waitingMessage").style.display = "none";
             document.getElementById("gameInfo").style.display = "block";
-            renderGame();
-        });
-
-        connection.on("GameUpdated", (gameData) => {
-            game = gameData;
             renderGame();
         });
 
@@ -170,16 +193,28 @@
             gameBoard.innerHTML = "";
             document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
 
-        const playersDiv = document.getElementById("players");
-        const playerElements = playersDiv.querySelectorAll(".player");
+            const playersDiv = document.getElementById("players");
+            playersDiv.innerHTML = ""; 
 
-        game.players.forEach((p, i) => {
-          const playerElement = playerElements[i];
-          playerElement.querySelector(".player-name").textContent = p.name;
-          playerElement.querySelector(".player-score").textContent = p.score;
-        });
+            const colors = ["blue", "orange", "green", "purple", "red"];
 
+            game.players.forEach((player, index) => {
+                const playerElement = document.createElement("div");
+                playerElement.className = "player";
+                playerElement.style.border = `1px solid ${colors[index % colors.length]}`;
+                playerElement.style.padding = "0.5rem 1rem";
+                playerElement.style.margin = "0.5rem 0";
 
+                playerElement.innerHTML = `
+                    <div class="player-label">Gracz ${index + 1}</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 600">
+                        <div class="player-name">${player.name}</div>
+                        <div style="color: ${colors[index % colors.length]}" class="player-score">${player.score}</div>
+                    </div>
+                `;
+
+                playersDiv.appendChild(playerElement);
+            });
 
             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
             const turnInfo = document.getElementById("turnInfo");
