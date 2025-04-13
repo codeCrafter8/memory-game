@@ -183,5 +183,31 @@ namespace MemoryGame.Hubs
             await Clients.Group(gameId).SendAsync("GameStarted", game);
         }
 
+        public async Task SkipTurn(string gameId)
+        {
+            var game = Games[gameId];
+            var currentPlayer = game.Players.First(p => p.ConnectionId == game.CurrentPlayerId);
+
+            if (game.CurrentPlayerId != Context.ConnectionId)
+            {
+                await Clients.Caller.SendAsync("NotYourTurn");
+                return;
+            }
+
+            var nextPlayer = GetNextPlayer(game);
+            game.CurrentPlayerId = nextPlayer.ConnectionId;
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {currentPlayer.Name} pominął turę.");
+
+            await Clients.Group(gameId).SendAsync("TurnSkipped", game);
+        }
+
+        private Player GetNextPlayer(Game game)
+        {
+            var currentIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+            var nextIndex = (currentIndex + 1) % game.Players.Count;  
+            return game.Players[nextIndex];
+        }
+
     }
 }

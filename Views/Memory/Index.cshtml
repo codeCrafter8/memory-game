@@ -46,6 +46,9 @@
         </div>
 
         <div id="turnInfo"></div>
+        <button id="skipTurnButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-warning mt-3">
+            Pomiń turę
+        </button>
 
             <div id="gameBoard" class="game-board"></div>
 
@@ -122,6 +125,14 @@
             }
         });
 
+        document.getElementById("skipTurnButton").addEventListener("click", () => {
+            if (game && game.currentPlayerId === myConnectionId) {
+                connection.invoke("SkipTurn", game.gameId);
+            } else {
+                alert("Nie twoja kolej!");
+            }
+        });
+
         connection.on("NoGameAvailable", (message) => {
             alert(message);
             window.location.reload();
@@ -169,6 +180,24 @@
             window.location.reload();
         });
 
+        connection.on("TurnSkipped", (gameData) => {
+            game = gameData;
+            updateCurrentPlayerUI(game);
+        });
+
+        function updateCurrentPlayerUI(game) {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnInfo = document.getElementById("turnInfo");
+            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+
+            const skipTurnButton = document.getElementById("skipTurnButton");
+            if (currentPlayer.connectionId === myConnectionId) {
+                skipTurnButton.style.display = "inline-block"; 
+            } else {
+                skipTurnButton.style.display = "none"; 
+            }
+        }
+
         function renderGame() {
             const gameBoard = document.getElementById("gameBoard");
             gameBoard.innerHTML = "";
@@ -197,9 +226,7 @@
                 playersDiv.appendChild(playerElement);
             });
 
-            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
-            const turnInfo = document.getElementById("turnInfo");
-            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+            updateCurrentPlayerUI(game);
 
             game.cards.forEach(card => {
                 const cardElement = document.createElement("div");
