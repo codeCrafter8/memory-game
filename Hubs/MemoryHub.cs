@@ -161,13 +161,14 @@ namespace MemoryGame.Hubs
             if (game != null)
             {
                 var player = game.Players.First(p => p.ConnectionId == Context.ConnectionId);
-                game.Players.Remove(player);
-                if (game.Players.Count != 0 && player.ConnectionId == game.CurrentPlayerId)
+                
+                if (game.Players.Count > 1 && player.ConnectionId == game.CurrentPlayerId)
                 {
                     var nextPlayer = GetNextPlayer(game);
                     game.CurrentPlayerId = nextPlayer.ConnectionId;
                     await Clients.Group(game.GameId).SendAsync("TurnChanged", game);
                 }
+                game.Players.Remove(player);
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {player.Name} (ID: {Context.ConnectionId}) rozłączył się.");
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat PlayerDisconnected do grupy {game.GameId}.");
                 await Clients.Group(game.GameId).SendAsync("PlayerDisconnected", player.Name, game);
