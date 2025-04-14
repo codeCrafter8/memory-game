@@ -146,6 +146,7 @@ namespace MemoryGame.Hubs
                 int nextIndex = (currentIndex + 1) % game.Players.Count;
                 var nextPlayer = game.Players[nextIndex];
                 game.CurrentPlayerId = nextPlayer.ConnectionId;
+                await Clients.Group(gameId).SendAsync("CardsNotMatched", game);
 
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Zmiana tury. Teraz tura gracza {nextPlayer.Name} (ID: {nextPlayer.ConnectionId}).");
             }

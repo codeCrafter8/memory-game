@@ -159,6 +159,7 @@
             document.getElementById("waitingMessage").style.display = "none";
             document.getElementById("gameInfo").style.display = "block";
             renderGame();
+            renderTimer();
         });
 
         connection.on("CardFlipped", (gameData) => {
@@ -188,6 +189,12 @@
         connection.on("TurnSkipped", (gameData) => {
             game = gameData;
             updateCurrentPlayerUI(game);
+            renderTimer();
+        });
+
+        connection.on("CardsNotMatched", (gameData) => {
+            game = gameData;
+            renderTimer();
         });
 
         function updateCurrentPlayerUI(game) {
@@ -201,30 +208,28 @@
             } else {
                 skipTurnButton.style.display = "none"; 
             }
+        }
 
+        function renderTimer() {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
             const turnTimer = document.getElementById("turnTimer");
             clearInterval(turnInterval);
             clearTimeout(turnTimeout);
 
             if (currentPlayer.connectionId === myConnectionId) {
-                let timeLeft = 15; 
+                let timeLeft = 20;
                 turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
 
                 turnInterval = setInterval(() => {
                     timeLeft--;
                     turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
-
-                    if (timeLeft <= 0) {
-                        clearInterval(turnInterval);
-                        turnTimer.textContent = "Koniec czasu!";
-                    }
                 }, 1000);
 
                 turnTimeout = setTimeout(() => {
-                    connection.invoke("SkipTurn", game.gameId); 
-                }, 15000);
+                    connection.invoke("SkipTurn", game.gameId);
+                }, 20000);
             } else {
-                turnTimer.textContent = ""; 
+                turnTimer.textContent = "";
             }
         }
 
