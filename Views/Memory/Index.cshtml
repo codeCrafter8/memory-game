@@ -46,6 +46,7 @@
         </div>
 
         <div id="turnInfo"></div>
+        <div id="turnTimer" style="font-size: 1.25rem; font-weight: bold; color: #d9534f; margin-bottom: 1rem;"></div>
         <button id="skipTurnButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-warning mt-3">
             Pomiń turę
         </button>
@@ -67,6 +68,8 @@
         let game = null;
         let myConnectionId = null;
         let isHost = false;
+        let turnTimeout = null;
+        let turnInterval = null;
 
         connection.start()
             .then(() => {
@@ -173,6 +176,8 @@
             renderGame();
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
             alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
         });
 
         connection.on("PlayerDisconnected", (playerName) => {
@@ -195,6 +200,31 @@
                 skipTurnButton.style.display = "inline-block"; 
             } else {
                 skipTurnButton.style.display = "none"; 
+            }
+
+            const turnTimer = document.getElementById("turnTimer");
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
+
+            if (currentPlayer.connectionId === myConnectionId) {
+                let timeLeft = 15; 
+                turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+
+                turnInterval = setInterval(() => {
+                    timeLeft--;
+                    turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+
+                    if (timeLeft <= 0) {
+                        clearInterval(turnInterval);
+                        turnTimer.textContent = "Koniec czasu!";
+                    }
+                }, 1000);
+
+                turnTimeout = setTimeout(() => {
+                    connection.invoke("SkipTurn", game.gameId); 
+                }, 15000);
+            } else {
+                turnTimer.textContent = ""; 
             }
         }
 
