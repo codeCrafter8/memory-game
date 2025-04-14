@@ -46,6 +46,10 @@
         </div>
 
         <div id="turnInfo"></div>
+        <div id="turnTimer" style="font-size: 1.25rem; font-weight: bold; color: #d9534f; margin-bottom: 1rem;"></div>
+        <button id="skipTurnButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-warning mt-3">
+            Pomiń turę
+        </button>
 
             <div id="gameBoard" class="game-board"></div>
 
@@ -64,6 +68,8 @@
         let game = null;
         let myConnectionId = null;
         let isHost = false;
+        let turnTimeout = null;
+        let turnInterval = null;
 
         connection.start()
             .then(() => {
@@ -122,6 +128,14 @@
             }
         });
 
+        document.getElementById("skipTurnButton").addEventListener("click", () => {
+            if (game && game.currentPlayerId === myConnectionId) {
+                connection.invoke("SkipTurn", game.gameId);
+            } else {
+                alert("Nie twoja kolej!");
+            }
+        });
+
         connection.on("NoGameAvailable", (message) => {
             alert(message);
             window.location.reload();
@@ -145,6 +159,7 @@
             document.getElementById("waitingMessage").style.display = "none";
             document.getElementById("gameInfo").style.display = "block";
             renderGame();
+            renderTimer();
         });
 
         connection.on("CardFlipped", (gameData) => {
@@ -162,12 +177,57 @@
             renderGame();
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
             alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
         });
 
-        connection.on("PlayerDisconnected", (playerName) => {
-            alert(`${playerName} rozłączył się. Koniec gry.`);
-            window.location.reload();
+        connection.on("PlayerDisconnected", (playerName, gameData) => {
+            alert(`${playerName} rozłączył się.`);
+            game = gameData;
+            renderGame();
         });
+
+        connection.on("TurnChanged", (gameData) => {
+            game = gameData;
+            renderGame();
+            renderTimer();
+        });
+
+        function updateCurrentPlayerUI(game) {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnInfo = document.getElementById("turnInfo");
+            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+
+            const skipTurnButton = document.getElementById("skipTurnButton");
+            if (currentPlayer.connectionId === myConnectionId) {
+                skipTurnButton.style.display = "inline-block"; 
+            } else {
+                skipTurnButton.style.display = "none"; 
+            }
+        }
+
+        function renderTimer() {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnTimer = document.getElementById("turnTimer");
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
+
+            if (currentPlayer.connectionId === myConnectionId) {
+                let timeLeft = 20;
+                turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+
+                turnInterval = setInterval(() => {
+                    timeLeft--;
+                    turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+                }, 1000);
+
+                turnTimeout = setTimeout(() => {
+                    connection.invoke("SkipTurn", game.gameId);
+                }, 20000);
+            } else {
+                turnTimer.textContent = "";
+            }
+        }
 
         function renderGame() {
             const gameBoard = document.getElementById("gameBoard");
@@ -197,9 +257,7 @@
                 playersDiv.appendChild(playerElement);
             });
 
-            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
-            const turnInfo = document.getElementById("turnInfo");
-            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+            updateCurrentPlayerUI(game);
 
             game.cards.forEach(card => {
                 const cardElement = document.createElement("div");

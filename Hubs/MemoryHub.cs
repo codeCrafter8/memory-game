@@ -146,6 +146,7 @@ namespace MemoryGame.Hubs
                 int nextIndex = (currentIndex + 1) % game.Players.Count;
                 var nextPlayer = game.Players[nextIndex];
                 game.CurrentPlayerId = nextPlayer.ConnectionId;
+                await Clients.Group(gameId).SendAsync("TurnChanged", game);
 
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Zmiana tury. Teraz tura gracza {nextPlayer.Name} (ID: {nextPlayer.ConnectionId}).");
             }
@@ -160,10 +161,17 @@ namespace MemoryGame.Hubs
             if (game != null)
             {
                 var player = game.Players.First(p => p.ConnectionId == Context.ConnectionId);
+                
+                if (game.Players.Count > 1 && player.ConnectionId == game.CurrentPlayerId)
+                {
+                    var nextPlayer = GetNextPlayer(game);
+                    game.CurrentPlayerId = nextPlayer.ConnectionId;
+                    await Clients.Group(game.GameId).SendAsync("TurnChanged", game);
+                }
                 game.Players.Remove(player);
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {player.Name} (ID: {Context.ConnectionId}) rozłączył się.");
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat PlayerDisconnected do grupy {game.GameId}.");
-                await Clients.Group(game.GameId).SendAsync("PlayerDisconnected", player.Name);
+                await Clients.Group(game.GameId).SendAsync("PlayerDisconnected", player.Name, game);
                 if (game.Players.Count == 0)
                 {
                     Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gra {game.GameId} została usunięta, brak graczy.");
@@ -181,6 +189,32 @@ namespace MemoryGame.Hubs
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss} Host uruchamia grę {gameId}.");
             await Clients.Group(gameId).SendAsync("GameStarted", game);
+        }
+
+        public async Task SkipTurn(string gameId)
+        {
+            var game = Games[gameId];
+            var currentPlayer = game.Players.First(p => p.ConnectionId == game.CurrentPlayerId);
+
+            if (game.CurrentPlayerId != Context.ConnectionId)
+            {
+                await Clients.Caller.SendAsync("NotYourTurn");
+                return;
+            }
+
+            var nextPlayer = GetNextPlayer(game);
+            game.CurrentPlayerId = nextPlayer.ConnectionId;
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {currentPlayer.Name} pominął turę.");
+
+            await Clients.Group(gameId).SendAsync("TurnChanged", game);
+        }
+
+        private Player GetNextPlayer(Game game)
+        {
+            var currentIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+            var nextIndex = (currentIndex + 1) % game.Players.Count;  
+            return game.Players[nextIndex];
         }
 
     }
