@@ -181,19 +181,15 @@
             clearTimeout(turnTimeout);
         });
 
-        connection.on("PlayerDisconnected", (playerName) => {
-            alert(`${playerName} rozłączył się. Koniec gry.`);
-            window.location.reload();
+        connection.on("PlayerDisconnected", (playerName, gameData) => {
+            alert(`${playerName} rozłączył się.`);
+            game = gameData;
+            renderGame();
         });
 
-        connection.on("TurnSkipped", (gameData) => {
+        connection.on("TurnChanged", (gameData) => {
             game = gameData;
-            updateCurrentPlayerUI(game);
-            renderTimer();
-        });
-
-        connection.on("CardsNotMatched", (gameData) => {
-            game = gameData;
+            renderGame();
             renderTimer();
         });
 
