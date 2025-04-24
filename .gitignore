@@ -1,0 +1,56 @@
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.log
+
+## NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Rider
+.idea/
+
+## Resharper
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+## ASP.NET temporary files
+App_Data/
+App_Start/
+*.dbmdl
+*.mdf
+*.ldf
+
+## IIS Express
+/.vs/
+*.vscode/
+*.launch.json
+*.applicationhost.config
+
+## Entity Framework
+*.sql
+*.sqlite
+*.bak
+
+## Others
+*.DS_Store
+Thumbs.db
+desktop.ini
+
+## Local config
+secrets.json
+appsettings.*.json

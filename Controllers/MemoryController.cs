@@ -4,16 +4,24 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.Collections.Generic;
+using MemoryGame.Models;
+using System.Text.Json;
 
 namespace MemoryGame.Controllers
 {
     public class MemoryController : Controller
     {
         private readonly IWebHostEnvironment _environment;
+        private readonly string _cardSetsFilePath;
 
         public MemoryController(IWebHostEnvironment environment)
         {
             _environment = environment;
+            _cardSetsFilePath = Path.Combine(_environment.WebRootPath, "cardsets.json");
+            if (!System.IO.File.Exists(_cardSetsFilePath))
+            {
+                System.IO.File.WriteAllText(_cardSetsFilePath, "[]");
+            }
         }
 
         public IActionResult Index()
@@ -22,11 +30,16 @@ namespace MemoryGame.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UploadImages(List<IFormFile> images)
+        public async Task<IActionResult> UploadImages(List<IFormFile> images, string setName)
         {
+            if (string.IsNullOrEmpty(setName))
+            {
+                return Json(new { success = false, message = "Nazwa zestawu nie została podana." });
+            }
+
             if (images == null || images.Count < 2)
             {
-                return Json(new { success = false, message = "Dodaj min. 2 obrazki" });
+                return Json(new { success = false, message = "Dodaj przynajmniej 2 obrazki." });
             }
 
             var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
@@ -50,7 +63,36 @@ namespace MemoryGame.Controllers
                 }
             }
 
-            return Json(new { success = true, imagePaths });
+            var cardSets = LoadCardSets();
+            var newSet = new CardSet
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = setName,
+                ImagePaths = imagePaths
+            };
+            cardSets.Add(newSet);
+            SaveCardSets(cardSets);
+
+            return Json(new { success = true, imagePaths, setId = newSet.Id });
+        }
+
+        [HttpGet]
+        public IActionResult GetCardSets()
+        {
+            var cardSets = LoadCardSets();
+            return Json(cardSets);
+        }
+
+        private List<CardSet> LoadCardSets()
+        {
+            var json = System.IO.File.ReadAllText(_cardSetsFilePath);
+            return JsonSerializer.Deserialize<List<CardSet>>(json) ?? new List<CardSet>();
+        }
+
+        private void SaveCardSets(List<CardSet> cardSets)
+        {
+            var json = JsonSerializer.Serialize(cardSets, new JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(_cardSetsFilePath, json);
         }
     }
 }
