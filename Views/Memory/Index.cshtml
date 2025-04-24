@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Gra Memory";
    }
 
@@ -31,29 +31,27 @@
             </div>
         </div>
     </div>
-    <div id="waitingMessage" style="display: none; margin-top: 2rem"><span style="letter-spacing: 1px;">Oczekiwanie na drugiego gracza...</span></div>
+
+    <div id="waitingMessage" style="display: none; margin-top: 2rem">
+        <div id="hostControls" style="margin-top: 1rem; display: none;">
+            <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+        </div>
+        <div id="waitingForHost" style="margin-top: 1rem; display: none;">
+            <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
+        </div>
+    </div>
+
     <div id="gameInfo" style="display: none;">
 
-        <div id="players">
-            <div style="border: 1px solid blue" class="player player-1">
-                <div class="player-label">Gracz 1</div>
-                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
-                <div class="player-name"></div>
-                <div style="color: blue" class="player-score"></div>
-                </div>
-            </div>
-            <div style="border: 1px solid orange" class="player player-2">
-                <div class="player-label">Gracz 2</div>
-                <div style="display: flex; gap: 1rem; justify-content: space-between; font-size: 2.5rem; font-weight: 600">
-
-
-                    <div style="color: orange" class="player-score"></div>
-                <div class="player-name"></div>
-                </div>
-            </div>
+        <div id="players" style="margin-bottom: 1.5rem;">
+            <!-- Dynamic player generation - will be filled by JavaScript -->
         </div>
 
         <div id="turnInfo"></div>
+        <div id="turnTimer" style="font-size: 1.25rem; font-weight: bold; color: #d9534f; margin-bottom: 1rem;"></div>
+        <button id="skipTurnButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-warning mt-3">
+            Pomiń turę
+        </button>
 
             <div id="gameBoard" class="game-board"></div>
 
@@ -73,6 +71,9 @@
         let myConnectionId = null;
         let selectedSet = null;
         let selectedCards = [];
+        let isHost = false;
+        let turnTimeout = null;
+        let turnInterval = null;
 
         connection.start()
             .then(() => {
@@ -181,6 +182,8 @@
                 document.getElementById("newSetForm").style.display = "none";
                 document.getElementById("cardSelection").style.display = "block";
                 showCardSelection(selectedSet);
+                connection.invoke("StartGameWithImages", playerName, result.imagePaths);
+                isHost = true;
             } else {
                 alert(result.message);
             }
@@ -201,8 +204,23 @@
                 document.getElementById("cardSetSelection").style.display = "none";
                 document.getElementById("cardSelection").style.display = "none";
                 connection.invoke("JoinGame", playerName);
+                isHost = false;
             } else {
                 alert("Wpisz swój nick.");
+            }
+        });
+
+        document.getElementById("startGameManuallyButton").addEventListener("click", () => {
+            if (game && isHost) {
+                connection.invoke("StartGameManually", game.gameId);
+            }
+        });
+
+        document.getElementById("skipTurnButton").addEventListener("click", () => {
+            if (game && game.currentPlayerId === myConnectionId) {
+                connection.invoke("SkipTurn", game.gameId);
+            } else {
+                alert("Nie twoja kolej!");
             }
         });
 
@@ -239,6 +257,12 @@
             if (playerSetup) playerSetup.style.display = "none";
             if (waitingMessage) waitingMessage.style.display = "block";
             if (cardSelection) cardSelection.style.display = "none";
+
+            if (isHost) {
+                document.getElementById("hostControls").style.display = "block";
+            } else {
+                document.getElementById("waitingForHost").style.display = "block";
+            }
         });
 
         connection.on("GameStarted", (gameData) => {
@@ -260,6 +284,7 @@
         connection.on("GameUpdated", (gameData) => {
             game = gameData;
             renderGame();
+            renderTimer();
         });
 
         connection.on("CardFlipped", (gameData) => {
@@ -275,62 +300,117 @@
             game = gameData;
             renderGame();
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty ${winner.score}! Ruchy: ${game.moves}`);
+            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
         });
 
-        connection.on("PlayerDisconnected", (playerName) => {
-            alert(`${playerName} rozłączył się. Koniec gry.`);
-            window.location.reload();
+        connection.on("PlayerDisconnected", (playerName, gameData) => {
+            alert(`${playerName} rozłączył się.`);
+            game = gameData;
+            renderGame();
         });
+
+        connection.on("TurnChanged", (gameData) => {
+            game = gameData;
+            renderGame();
+            renderTimer();
+        });
+
+        function updateCurrentPlayerUI(game) {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnInfo = document.getElementById("turnInfo");
+            turnInfo.textContent = `Obecny ruch: ${currentPlayer.name}`;
+
+            const skipTurnButton = document.getElementById("skipTurnButton");
+            if (currentPlayer.connectionId === myConnectionId) {
+                skipTurnButton.style.display = "inline-block"; 
+            } else {
+                skipTurnButton.style.display = "none"; 
+            }
+        }
+
+        function renderTimer() {
+            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+            const turnTimer = document.getElementById("turnTimer");
+            clearInterval(turnInterval);
+            clearTimeout(turnTimeout);
+
+            if (currentPlayer.connectionId === myConnectionId) {
+                let timeLeft = 20;
+                turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+
+                turnInterval = setInterval(() => {
+                    timeLeft--;
+                    turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+                }, 1000);
+
+                turnTimeout = setTimeout(() => {
+                    connection.invoke("SkipTurn", game.gameId);
+                }, 20000);
+            } else {
+                turnTimer.textContent = "";
+            }
+        }
 
         function renderGame() {
             const gameBoard = document.getElementById("gameBoard");
             gameBoard.innerHTML = "";
-            document.getElementById("moves").textContent = `Liczba ruchów: ${game.moves}`;
+            document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
 
-            // Aktualizacja graczy
-            const player1Div = document.querySelector(".player-1");
-            const player2Div = document.querySelector(".player-2");
+            const playersDiv = document.getElementById("players");
+            playersDiv.innerHTML = ""; 
 
-            if (game.players.length >= 1) {
-                const player1 = game.players[0];
-                player1Div.querySelector(".player-name").textContent = player1.name;
-                player1Div.querySelector(".player-score").textContent = player1.score;
-            }
-            if (game.players.length >= 2) {
-                const player2 = game.players[1];
-                player2Div.querySelector(".player-name").textContent = player2.name;
-                player2Div.querySelector(".player-score").textContent = player2.score;
-            }
+            const colors = ["blue", "orange", "green", "purple", "red"];
 
-            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
-            const turnInfo = document.getElementById("turnInfo");
-            turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
+            game.players.forEach((player, index) => {
+                const playerElement = document.createElement("div");
+                playerElement.className = "player";
+                playerElement.style.border = `1px solid ${colors[index % colors.length]}`;
+                playerElement.style.padding = "0.5rem 1rem";
+                playerElement.style.margin = "0.5rem 0";
 
-            const gameBoardRect = gameBoard.getBoundingClientRect();
-            const gameBoardWidth = gameBoardRect.width;
-            const gameBoardHeight = gameBoardRect.height;
-            const totalCards = game.cards.length;
+                playerElement.innerHTML = `
+                    <div class="player-label">Gracz ${index + 1}</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 600">
+                        <div class="player-name">${player.name}</div>
+                        <div style="color: ${colors[index % colors.length]}" class="player-score">${player.score}</div>
+                    </div>
+                `;
 
-            const aspectRatio = gameBoardWidth / gameBoardHeight;
-            const sqrtCards = Math.sqrt(totalCards);
-            let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
-            let rows = Math.ceil(totalCards / cols);
+                playersDiv.appendChild(playerElement);
+            });
+          
+//             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+//             const turnInfo = document.getElementById("turnInfo");
+//             turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
 
-            while (cols * rows < totalCards) {
-                cols++;
-                rows = Math.ceil(totalCards / cols);
-            }
+//             const gameBoardRect = gameBoard.getBoundingClientRect();
+//             const gameBoardWidth = gameBoardRect.width;
+//             const gameBoardHeight = gameBoardRect.height;
+//             const totalCards = game.cards.length;
 
-            const gap = 5;
-            const totalGapWidth = (cols - 1) * gap;
-            const totalGapHeight = (rows - 1) * gap;
-            const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
-            const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
-            const cardSize = Math.min(cardWidth, cardHeight);
+//             const aspectRatio = gameBoardWidth / gameBoardHeight;
+//             const sqrtCards = Math.sqrt(totalCards);
+//             let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
+//             let rows = Math.ceil(totalCards / cols);
 
-            gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
-            gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
+//             while (cols * rows < totalCards) {
+//                 cols++;
+//                 rows = Math.ceil(totalCards / cols);
+//             }
+
+//             const gap = 5;
+//             const totalGapWidth = (cols - 1) * gap;
+//             const totalGapHeight = (rows - 1) * gap;
+//             const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
+//             const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
+//             const cardSize = Math.min(cardWidth, cardHeight);
+
+//             gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
+//             gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
+
+            updateCurrentPlayerUI(game);
 
             game.cards.forEach(card => {
                 const cardElement = document.createElement("div");
