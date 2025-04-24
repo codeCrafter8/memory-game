@@ -182,8 +182,6 @@
                 document.getElementById("newSetForm").style.display = "none";
                 document.getElementById("cardSelection").style.display = "block";
                 showCardSelection(selectedSet);
-                connection.invoke("StartGameWithImages", playerName, result.imagePaths);
-                isHost = true;
             } else {
                 alert(result.message);
             }
@@ -196,6 +194,7 @@
                 return;
             }
             connection.invoke("StartGameWithImages", playerName, selectedCards);
+            isHost = true;
         });
 
         document.getElementById("joinButton").addEventListener("click", () => {
@@ -381,34 +380,34 @@
                 playersDiv.appendChild(playerElement);
             });
           
-//             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
-//             const turnInfo = document.getElementById("turnInfo");
-//             turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
+             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
+             const turnInfo = document.getElementById("turnInfo");
+             turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
 
-//             const gameBoardRect = gameBoard.getBoundingClientRect();
-//             const gameBoardWidth = gameBoardRect.width;
-//             const gameBoardHeight = gameBoardRect.height;
-//             const totalCards = game.cards.length;
+             const gameBoardRect = gameBoard.getBoundingClientRect();
+             const gameBoardWidth = gameBoardRect.width;
+             const gameBoardHeight = gameBoardRect.height;
+             const totalCards = game.cards.length;
 
-//             const aspectRatio = gameBoardWidth / gameBoardHeight;
-//             const sqrtCards = Math.sqrt(totalCards);
-//             let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
-//             let rows = Math.ceil(totalCards / cols);
+             const aspectRatio = gameBoardWidth / gameBoardHeight;
+             const sqrtCards = Math.sqrt(totalCards);
+             let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
+             let rows = Math.ceil(totalCards / cols);
 
-//             while (cols * rows < totalCards) {
-//                 cols++;
-//                 rows = Math.ceil(totalCards / cols);
-//             }
+             while (cols * rows < totalCards) {
+                 cols++;
+                 rows = Math.ceil(totalCards / cols);
+             }
 
-//             const gap = 5;
-//             const totalGapWidth = (cols - 1) * gap;
-//             const totalGapHeight = (rows - 1) * gap;
-//             const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
-//             const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
-//             const cardSize = Math.min(cardWidth, cardHeight);
+             const gap = 5;
+             const totalGapWidth = (cols - 1) * gap;
+             const totalGapHeight = (rows - 1) * gap;
+             const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
+             const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
+             const cardSize = Math.min(cardWidth, cardHeight);
 
-//             gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
-//             gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
+             gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
+             gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
 
             updateCurrentPlayerUI(game);
 
@@ -547,5 +546,17 @@
     .card-preview {
         display: inline-block;
         text-align: center;
+    }
+
+    #newSetForm input[type="text"],
+    #newSetForm input[type="file"] {
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto 1rem auto;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1rem;
     }
 </style>
