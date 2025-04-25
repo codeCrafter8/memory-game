@@ -8,6 +8,7 @@ namespace MemoryGame.Models
         public string GameId { get; set; }
         public int Moves { get; set; }
         public bool IsGameOver { get; set; }
+        public int TimeForTurn { get; set; }
         public List<Player> Players { get; set; } = new List<Player>();
         public string CurrentPlayerId { get; set; }
         public List<string> ImagePaths { get; set; }

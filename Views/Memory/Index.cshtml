@@ -9,11 +9,14 @@
     <h2 style="text-align: center; text-transform: uppercase; letter-spacing: 1px">Sieciowa gra Memory</h2>
     <div id="playerSetup" class="setup-container">
         <input type="text" id="playerName" placeholder="Enter your name" />
+        <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
+        <h2>Rozpocznij nową grę jako host</h2>
+        <h4>Wybierz czas na ruch</h4>
+        <input type="number" id="timeForTurn" value=30 />
         <div id="cardSetSelection" style="display: block;">
             <h4>Wybierz zestaw kart lub utwórz nowy</h4>
             <div id="cardSetsList"></div>
             <button id="createNewSetButton" class="btn btn-secondary mt-3">Utwórz nowy zestaw kart</button>
-            <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
         </div>
         <div id="newSetForm" style="display: none;">
             <h4>Utwórz nowy zestaw kart</h4>
@@ -49,6 +52,9 @@
 
         <div id="turnInfo"></div>
         <div id="turnTimer" style="font-size: 1.25rem; font-weight: bold; color: #d9534f; margin-bottom: 1rem;"></div>
+        <div id="turnTimerProgress" style="width: 100%; height: 10px; background: #ddd; margin-bottom: 1rem;">
+            <div id="progressBar" style="width: 100%; height: 100%; background: #d9534f; transition: width 1s linear;"></div>
+        </div>
         <button id="skipTurnButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-warning mt-3">
             Pomiń turę
         </button>
@@ -189,11 +195,16 @@
 
         document.getElementById("startWithSelectedCardsButton").addEventListener("click", () => {
             const playerName = document.getElementById("playerName").value;
+            const timeForTurn = parseInt(document.getElementById("timeForTurn").value);
             if (selectedCards.length < 2) {
                 alert("Wybierz co najmniej dwie karty, aby rozpocząć grę.");
                 return;
             }
-            connection.invoke("StartGameWithImages", playerName, selectedCards);
+            if (isNaN(timeForTurn) || timeForTurn < 5 || timeForTurn > 120) {
+                alert("Czas na ruch musi być między 5 a 120 sekundami.");
+                return;
+            }
+            connection.invoke("StartGameWithImages", playerName, selectedCards, timeForTurn);
             isHost = true;
         });
 
@@ -217,7 +228,7 @@
 
         document.getElementById("skipTurnButton").addEventListener("click", () => {
             if (game && game.currentPlayerId === myConnectionId) {
-                connection.invoke("SkipTurn", game.gameId);
+                connection.invoke("SkipTurn", game.gameId, myConnectionId);
             } else {
                 alert("Nie twoja kolej!");
             }
@@ -301,19 +312,49 @@
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
             alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
             clearInterval(turnInterval);
-            clearTimeout(turnTimeout);
         });
 
         connection.on("PlayerDisconnected", (playerName, gameData) => {
             alert(`${playerName} rozłączył się.`);
             game = gameData;
             renderGame();
+            clearInterval(turnInterval);
         });
 
         connection.on("TurnChanged", (gameData) => {
             game = gameData;
             renderGame();
             renderTimer();
+        });
+
+        connection.on("TurnTimerStarted", (timeForTurn) => {
+            console.log(`Otrzymano TurnTimerStarted z czasem ${timeForTurn} sekund.`);
+
+            const turnTimer = document.getElementById("turnTimer");
+            const progressBar = document.getElementById("progressBar");
+            let timeLeft = timeForTurn;
+            turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+            progressBar.style.width = "100%";
+
+            clearInterval(turnInterval);
+            turnInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(turnInterval);
+                    turnTimer.textContent = "Czas minął!";
+                    progressBar.style.width = "0%";
+                } else {
+                    turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
+                    progressBar.style.width = `${(timeLeft / timeForTurn) * 100}%`;
+                    if (timeLeft <= 5) {
+                        turnTimer.style.color = "#ff0000";
+                        progressBar.style.background = "#ff0000";
+                    } else {
+                        turnTimer.style.color = "#d9534f";
+                        progressBar.style.background = "#d9534f";
+                    }
+                }
+            }, 1000);
         });
 
         function updateCurrentPlayerUI(game) {
@@ -330,24 +371,9 @@
         }
 
         function renderTimer() {
-            const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
             const turnTimer = document.getElementById("turnTimer");
-            clearInterval(turnInterval);
-            clearTimeout(turnTimeout);
 
-            if (currentPlayer.connectionId === myConnectionId) {
-                let timeLeft = 20;
-                turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
-
-                turnInterval = setInterval(() => {
-                    timeLeft--;
-                    turnTimer.textContent = `Pozostały czas: ${timeLeft}s`;
-                }, 1000);
-
-                turnTimeout = setTimeout(() => {
-                    connection.invoke("SkipTurn", game.gameId);
-                }, 20000);
-            } else {
+            if (!turnInterval) {
                 turnTimer.textContent = "";
             }
         }
@@ -481,7 +507,6 @@
 
     #players {
         display: flex;
-        flex-direction: column;
         gap: 10px;
         padding: 10px;
         background: #f8f8f8;
@@ -548,8 +573,8 @@
         text-align: center;
     }
 
-    #newSetForm input[type="text"],
-    #newSetForm input[type="file"] {
+    input[type="text"],
+    input[type="file"] {
         display: block;
         width: 100%;
         max-width: 300px;
@@ -558,5 +583,9 @@
         border: 1px solid #ccc;
         border-radius: 5px;
         font-size: 1rem;
+    }
+
+    #cardSetSelection {
+        margin: 2rem 0 0 0;
     }
 </style>
