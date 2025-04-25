@@ -11,6 +11,12 @@
         <input type="text" id="playerName" placeholder="Enter your name" />
         <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
         <h2>Rozpocznij nową grę jako host</h2>
+        <h4>Wybierz poziom trudności</h4>
+        <div class="difficulty-levels">
+            <label><input type="radio" name="difficulty" value="easy" checked> EASY</label>
+            <label><input type="radio" name="difficulty" value="medium"> MEDIUM</label>
+            <label><input type="radio" name="difficulty" value="hard"> HARD</label>
+        </div>
         <h4>Wybierz czas na ruch</h4>
         <input type="number" id="timeForTurn" value=30 />
         <div id="cardSetSelection" style="display: block;">
@@ -27,6 +33,7 @@
         </div>
         <div id="cardSelection" style="display: none;">
             <h4>Wybierz karty z zestawu</h4>
+            <div id="suggestedCards"></div>
             <div id="cardsPreview" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
             <div style="margin-top: 1rem;">
                 <button id="startWithSelectedCardsButton" class="btn btn-primary">Rozpocznij grę z wybranymi kartami</button>
@@ -359,6 +366,33 @@
             }, 1000);
         });
 
+        function updateDifficultySettings() {
+            const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+            const timeForTurnInput = document.getElementById("timeForTurn");
+            const suggestedCardsDiv = document.getElementById("suggestedCards");
+
+            if (difficulty === "easy") {
+                timeForTurnInput.value = 30;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: do 5";
+            } else if (difficulty === "medium") {
+                timeForTurnInput.value = 15;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: 5-10";
+            } else if (difficulty === "hard") {
+                timeForTurnInput.value = 5;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: 10+";
+            }
+
+            console.log(`Wybrano poziom trudności: ${difficulty}`);
+        }
+
+        document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
+            radio.addEventListener("change", updateDifficultySettings);
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            updateDifficultySettings();
+        });
+
         function renderPlayerList() {
             const playerListDiv = document.getElementById("playerList");
             if (!game || !game.players) {
@@ -622,5 +656,23 @@
 
     #playerList li {
         margin: 5px 0;
+    }
+
+    .difficulty-levels {
+        margin: 10px 0;
+    }
+
+    .difficulty-levels label {
+        margin-right: 15px;
+        font-weight: bold;
+    }
+
+    .difficulty-levels input[type="radio"] {
+        margin-right: 5px;
+    }
+
+    #suggestedCards {
+        color: #555;
+        font-style: italic;
     }
 </style>
