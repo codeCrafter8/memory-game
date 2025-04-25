@@ -12,6 +12,7 @@ namespace MemoryGame.Models
         public List<Player> Players { get; set; } = new List<Player>();
         public string CurrentPlayerId { get; set; }
         public List<string> ImagePaths { get; set; }
+        public List<Player> PlayerOrder { get; set; } = new List<Player>();
     }
 
     public class Card

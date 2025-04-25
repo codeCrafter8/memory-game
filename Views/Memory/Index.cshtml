@@ -38,6 +38,7 @@
     <div id="waitingMessage" style="display: none; margin-top: 2rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
             <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+            <div id="playerList"></div>
         </div>
         <div id="waitingForHost" style="margin-top: 1rem; display: none;">
             <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
@@ -270,6 +271,7 @@
 
             if (isHost) {
                 document.getElementById("hostControls").style.display = "block";
+                renderPlayerList();
             } else {
                 document.getElementById("waitingForHost").style.display = "block";
             }
@@ -356,6 +358,22 @@
                 }
             }, 1000);
         });
+
+        function renderPlayerList() {
+            const playerListDiv = document.getElementById("playerList");
+            if (!game || !game.players) {
+                playerListDiv.innerHTML = "<p>Brak graczy.</p>";
+                return;
+            }
+
+            let html = "<p>Połączeni gracze:</p><ul>";
+            game.players.forEach(player => {
+                html += `<li>${player.name} (ID: ${player.connectionId})</li>`;
+            });
+            html += "</ul>";
+
+            playerListDiv.innerHTML = html;
+        }
 
         function updateCurrentPlayerUI(game) {
             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
@@ -587,5 +605,22 @@
 
     #cardSetSelection {
         margin: 2rem 0 0 0;
+    }
+
+    #playerList {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    #playerList ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    #playerList li {
+        margin: 5px 0;
     }
 </style>
