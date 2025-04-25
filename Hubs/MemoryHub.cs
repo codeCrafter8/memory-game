@@ -151,9 +151,9 @@ namespace MemoryGame.Hubs
             {
                 flippedCards.ForEach(c => c.IsFlipped = false);
 
-                int currentIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
-                int nextIndex = (currentIndex + 1) % game.Players.Count;
-                var nextPlayer = game.Players[nextIndex];
+                int currentIndex = game.PlayerOrder.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+                int nextIndex = (currentIndex + 1) % game.PlayerOrder.Count;
+                var nextPlayer = game.PlayerOrder[nextIndex];
                 game.CurrentPlayerId = nextPlayer.ConnectionId;
 
                 StartTurnTimer(game); // Uruchom timer dla nowej tury po niedopasowaniu
@@ -178,9 +178,11 @@ namespace MemoryGame.Hubs
                 {
                     var nextPlayer = GetNextPlayer(game);
                     game.CurrentPlayerId = nextPlayer.ConnectionId;
+                    StartTurnTimer(game);
                     await _hubContext.Clients.Group(game.GameId).SendAsync("TurnChanged", game);
                 }
                 game.Players.Remove(player);
+                game.PlayerOrder.Remove(player);
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {player.Name} (ID: {Context.ConnectionId}) rozłączył się.");
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat PlayerDisconnected do grupy {game.GameId}.");
 
@@ -204,7 +206,17 @@ namespace MemoryGame.Hubs
         {
             if (!Games.TryGetValue(gameId, out var game)) return;
 
-            game.CurrentPlayerId = game.Players.FirstOrDefault()?.ConnectionId;
+            game.PlayerOrder = game.Players.OrderBy(_ => Guid.NewGuid()).ToList();
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Wylosowano kolejność graczy dla gry {gameId}: " +
+                string.Join(", ", game.PlayerOrder.Select(p => p.Name)));
+
+            game.CurrentPlayerId = game.PlayerOrder.FirstOrDefault()?.ConnectionId;
+
+            if (game.CurrentPlayerId == null)
+            {
+                Console.WriteLine($"{DateTime.Now:HH:mm:ss} Brak graczy w grze {gameId}. Nie można rozpocząć gry.");
+                return;
+            }
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss} Host uruchamia grę {gameId}.");
             StartTurnTimer(game);
@@ -245,7 +257,6 @@ namespace MemoryGame.Hubs
         {
             if (!Games.TryGetValue(gameId, out var game))
             {
-                // Jeśli wywołane przez klienta, wyślij wiadomość do wywołującego
                 if (callerConnectionId != null)
                 {
                     await _hubContext.Clients.Client(callerConnectionId).SendAsync("GameNotFound", "Gra o podanym ID nie istnieje.");
@@ -267,7 +278,6 @@ namespace MemoryGame.Hubs
                 return;
             }
 
-            // Sprawdź, czy to tura wywołującego gracza, tylko jeśli wywołane przez klienta
             if (callerConnectionId != null && game.CurrentPlayerId != callerConnectionId)
             {
                 await _hubContext.Clients.Client(callerConnectionId).SendAsync("NotYourTurn");
@@ -276,10 +286,12 @@ namespace MemoryGame.Hubs
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss} Gracz {currentPlayer.Name} pominął turę.");
 
-            var currentPlayerIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
-            var nextPlayerIndex = (currentPlayerIndex + 1) % game.Players.Count;
-            game.CurrentPlayerId = game.Players[nextPlayerIndex].ConnectionId;
+            var currentPlayerIndex = game.PlayerOrder.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+            var nextPlayerIndex = (currentPlayerIndex + 1) % game.PlayerOrder.Count;
+            game.CurrentPlayerId = game.PlayerOrder[nextPlayerIndex].ConnectionId;
             game.Moves++;
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} Nowa tura gracza: {game.PlayerOrder[nextPlayerIndex].Name}");
 
             StartTurnTimer(game);
 
@@ -288,9 +300,9 @@ namespace MemoryGame.Hubs
 
         private Player GetNextPlayer(Game game)
         {
-            var currentIndex = game.Players.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
-            var nextIndex = (currentIndex + 1) % game.Players.Count;
-            return game.Players[nextIndex];
+            var currentIndex = game.PlayerOrder.FindIndex(p => p.ConnectionId == game.CurrentPlayerId);
+            var nextIndex = (currentIndex + 1) % game.PlayerOrder.Count;
+            return game.PlayerOrder[nextIndex];
         }
     }
 }

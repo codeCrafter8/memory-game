@@ -11,6 +11,12 @@
         <input type="text" id="playerName" placeholder="Enter your name" />
         <button id="joinButton" class="btn btn-secondary mt-3">Dołącz do istniejącej gry</button>
         <h2>Rozpocznij nową grę jako host</h2>
+        <h4>Wybierz poziom trudności</h4>
+        <div class="difficulty-levels">
+            <label><input type="radio" name="difficulty" value="easy" checked> EASY</label>
+            <label><input type="radio" name="difficulty" value="medium"> MEDIUM</label>
+            <label><input type="radio" name="difficulty" value="hard"> HARD</label>
+        </div>
         <h4>Wybierz czas na ruch</h4>
         <input type="number" id="timeForTurn" value=30 />
         <div id="cardSetSelection" style="display: block;">
@@ -27,6 +33,7 @@
         </div>
         <div id="cardSelection" style="display: none;">
             <h4>Wybierz karty z zestawu</h4>
+            <div id="suggestedCards"></div>
             <div id="cardsPreview" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
             <div style="margin-top: 1rem;">
                 <button id="startWithSelectedCardsButton" class="btn btn-primary">Rozpocznij grę z wybranymi kartami</button>
@@ -38,6 +45,7 @@
     <div id="waitingMessage" style="display: none; margin-top: 2rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
             <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+            <div id="playerList"></div>
         </div>
         <div id="waitingForHost" style="margin-top: 1rem; display: none;">
             <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
@@ -270,6 +278,7 @@
 
             if (isHost) {
                 document.getElementById("hostControls").style.display = "block";
+                renderPlayerList();
             } else {
                 document.getElementById("waitingForHost").style.display = "block";
             }
@@ -356,6 +365,49 @@
                 }
             }, 1000);
         });
+
+        function updateDifficultySettings() {
+            const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+            const timeForTurnInput = document.getElementById("timeForTurn");
+            const suggestedCardsDiv = document.getElementById("suggestedCards");
+
+            if (difficulty === "easy") {
+                timeForTurnInput.value = 30;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: do 5";
+            } else if (difficulty === "medium") {
+                timeForTurnInput.value = 15;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: 5-10";
+            } else if (difficulty === "hard") {
+                timeForTurnInput.value = 5;
+                suggestedCardsDiv.textContent = "Sugerowana liczba kart: 10+";
+            }
+
+            console.log(`Wybrano poziom trudności: ${difficulty}`);
+        }
+
+        document.querySelectorAll('input[name="difficulty"]').forEach(radio => {
+            radio.addEventListener("change", updateDifficultySettings);
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            updateDifficultySettings();
+        });
+
+        function renderPlayerList() {
+            const playerListDiv = document.getElementById("playerList");
+            if (!game || !game.players) {
+                playerListDiv.innerHTML = "<p>Brak graczy.</p>";
+                return;
+            }
+
+            let html = "<p>Połączeni gracze:</p><ul>";
+            game.players.forEach(player => {
+                html += `<li>${player.name} (ID: ${player.connectionId})</li>`;
+            });
+            html += "</ul>";
+
+            playerListDiv.innerHTML = html;
+        }
 
         function updateCurrentPlayerUI(game) {
             const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
@@ -587,5 +639,40 @@
 
     #cardSetSelection {
         margin: 2rem 0 0 0;
+    }
+
+    #playerList {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+    }
+
+    #playerList ul {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    #playerList li {
+        margin: 5px 0;
+    }
+
+    .difficulty-levels {
+        margin: 10px 0;
+    }
+
+    .difficulty-levels label {
+        margin-right: 15px;
+        font-weight: bold;
+    }
+
+    .difficulty-levels input[type="radio"] {
+        margin-right: 5px;
+    }
+
+    #suggestedCards {
+        color: #555;
+        font-style: italic;
     }
 </style>
