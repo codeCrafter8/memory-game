@@ -1,6 +1,6 @@
 @{
     ViewData["Title"] = "Gra Memory";
-   }
+}
 
 <link href="css/memory.css" rel="stylesheet" />
 
@@ -32,19 +32,19 @@
         <fieldset style="margin-top: 20px">
             <legend>Ustawienia nowej gry</legend>
 
-            <section style="display: flex; justify-content: center">
+            <section style="display: flex; justify-content: center; align-items: center;">
                 <p style="font-size: 18px">Wybierz poziom trudności</p>
 
-                <div style="display: flex; gap: 1rem; justify-content: center">
+                <div style="display: flex; gap: 1rem; justify-content: center;">
                     <input type="radio" name="difficulty" id="easy" value="easy" checked />
-                    <label for="easy">EASY</label>
+                    <label style="font-size: 18px" for="easy">EASY</label>
 
                     <input type="radio" name="difficulty" id="medium" value="medium" checked />
-                    <label for="medium">MEDIUM</label>
+                    <label style="font-size: 18px" for="medium">MEDIUM</label>
 
 
                     <input type="radio" name="difficulty" id="hard" value="hard" checked />
-                    <label for="hard">HARD</label>
+                    <label style="font-size: 18px" for="hard">HARD</label>
                 </div>
             </section>
 
@@ -53,17 +53,6 @@
             <input type="number" id="timeForTurn" value=30 />
 
         </fieldset>
-
-        <!--<h2>Rozpocznij nową grę jako host</h2>
-        <h4>Wybierz poziom trudności</h4>
-        <div class="difficulty-levels">
-            <label><input type="radio" name="difficulty" value="easy" checked> EASY</label>
-            <label><input type="radio" name="difficulty" value="medium"> MEDIUM</label>
-            <label><input type="radio" name="difficulty" value="hard"> HARD</label>
-        </div>
-        <h4>Wybierz czas na ruch</h4>
-        <input type="number" id="timeForTurn" value=30 />-->
-
 
 
 
@@ -79,33 +68,24 @@
             </div>
         </fieldset>
 
-
-
-
-        <!--<div id="cardSetSelection" style="display: block;">
-            <h4>Wybierz zestaw kart lub utwórz nowy</h4>
-            <div id="cardSetsList"></div>
-            <button id="createNewSetButton" class="btn btn-secondary mt-3">Utwórz nowy zestaw kart</button>
-            </div>-->
         <div id="newSetForm" style="display: none;">
             <h4>Utwórz nowy zestaw kart</h4>
             <div style="display: flex; justify-content: center; ">
                 <label>Ustaw nazwę zestawu kart:</label>
                 <input type="text" id="setName" placeholder="Podaj nazwę zestawu" />
             </div>
-            
-            <!--input type="file" id="imageFiles" multiple accept="image/*" />--->
+
             <label style="padding: 10px 20px; background: violet; cursor: pointer;" for="image_uploads">Wybierz obrazy (PNG, JPG)</label>
             <input type="file"
-                   id="image_uploads"
+                   id="imageFiles"
                    name="image_uploads"
                    style="border: none;"
                    accept=".jpg, .jpeg, .png"
                    multiple />
-                   <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                 <button id="uploadSetButton" class="btn btn-primary mt-3" style="display: block;">Prześlij i zapisz zestaw</button>
                 <button id="cancelNewSetButton" class="btn btn-secondary mt-3">Anuluj</button>
-                   </div>
+            </div>
 
         </div>
         <div id="cardSelection" style="display: none;">
@@ -113,15 +93,16 @@
             <div id="suggestedCards"></div>
             <div id="cardsPreview" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
             <div style="margin-top: 1rem;">
+                <button id="selectAllCards" class="btn btn-primary">Zaznacz wszystkie karty</button>
                 <button id="startWithSelectedCardsButton" class="btn btn-primary">Rozpocznij grę z wybranymi kartami</button>
                 <button id="backToSetsButton" class="btn btn-secondary">Cofnij</button>
             </div>
         </div>
     </div>
 
-    <div id="waitingMessage" style="display: none; margin-top: 2rem">
+    <div id="waitingMessage" style="display: none; margin-top: 1rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
-            <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem;" class="btn btn-success">Rozpocznij rozgrywkę</button>
+            <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #c3e6cb, #28a745);">Rozpocznij rozgrywkę</button>
             <div id="playerList"></div>
         </div>
         <div id="waitingForHost" style="margin-top: 1rem; display: none;">
@@ -132,10 +113,9 @@
     <div id="gameInfo" style="display: none;">
 
         <div id="players" style="margin-bottom: 1.5rem;">
-            <!-- Dynamic player generation - will be filled by JavaScript -->
         </div>
 
-        <div id="turnInfo"></div>
+        <div id="turnInfo" class="turnInfo"></div>
         <div id="turnTimer" style="font-size: 1.25rem; font-weight: bold; color: #d9534f; margin-bottom: 1rem;"></div>
         <div id="turnTimerProgress" style="width: 100%; height: 10px; background: #ddd; margin-bottom: 1rem;">
             <div id="progressBar" style="width: 100%; height: 100%; background: #d9534f; transition: width 1s linear;"></div>
@@ -144,7 +124,7 @@
             Pomiń turę
         </button>
 
-            <div id="gameBoard" class="game-board"></div>
+        <div id="gameBoard" class="game-board"></div>
 
         <div id="moves">Liczba ruchów: 0</div>
     </div>
@@ -200,6 +180,7 @@
         }
 
         function showCardSelection(set) {
+            const btnSelectAllCards = document.getElementById("selectAllCards");
             document.getElementById("cardSetSelection").style.display = "none";
             document.getElementById("cardSelection").style.display = "block";
             const cardsPreview = document.getElementById("cardsPreview");
@@ -223,6 +204,14 @@
                 });
                 cardsPreview.appendChild(cardElement);
             });
+
+                 btnSelectAllCards.addEventListener("click", () => {
+            selectedCards = [...set.imagePaths];
+            cardsPreview.querySelectorAll("input[type='checkbox']").forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+
         }
 
         document.getElementById("createNewSetButton").addEventListener("click", () => {
@@ -338,7 +327,7 @@
             if (cardSetSelection) cardSetSelection.style.display = "block";
             if (newSetForm) newSetForm.style.display = "none";
             if (cardSelection) cardSelection.style.display = "none";
-            
+
             const cardsPreview = document.getElementById("cardsPreview");
             if (cardsPreview) cardsPreview.innerHTML = "";
         }
@@ -493,9 +482,9 @@
 
             const skipTurnButton = document.getElementById("skipTurnButton");
             if (currentPlayer.connectionId === myConnectionId) {
-                skipTurnButton.style.display = "inline-block"; 
+                skipTurnButton.style.display = "inline-block";
             } else {
-                skipTurnButton.style.display = "none"; 
+                skipTurnButton.style.display = "none";
             }
         }
 
@@ -513,7 +502,7 @@
             document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
 
             const playersDiv = document.getElementById("players");
-            playersDiv.innerHTML = ""; 
+            playersDiv.innerHTML = "";
 
             const colors = ["blue", "orange", "green", "purple", "red"];
 
@@ -534,7 +523,7 @@
 
                 playersDiv.appendChild(playerElement);
             });
-          
+
              const currentPlayer = game.players.find(p => p.connectionId === game.currentPlayerId);
              const turnInfo = document.getElementById("turnInfo");
              turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
@@ -701,26 +690,40 @@
         background: #f9f9f9;
     }
 
-    .card-set:hover {
-        background: #f0f0f0;
-    }
+        .card-set:hover {
+            background: #f0f0f0;
+        }
 
     .card-preview {
         display: inline-block;
         text-align: center;
     }
 
-    /*input[type="text"],
-    input[type="file"] {
-        display: block;
-        width: 100%;
-        max-width: 300px;
-        margin: 0 auto 1rem auto;
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        font-size: 1rem;
-    }*/
+    .setup-container h2 {
+        margin-top: 2rem;
+    }
+
+    .setup-container .createNewSetButton {
+        background: #c0392b;
+        color: white;
+        padding: 10px 20px;
+        letter-spacing: 1px;
+        border: none;
+    }
+
+
+    .joinButton {
+        background: #4287f5;
+        color: white;
+        padding: 10px 20px;
+        letter-spacing: 1px;
+        border: none;
+    }
+
+    .turnInfo {
+        font-size: 18px; 
+        font-weight: 500;
+    }
 
     #cardSetSelection {
         margin: 2rem 0 0 0;
@@ -730,31 +733,32 @@
         margin: 10px 0;
         padding: 10px;
         border: 1px solid #ccc;
-        border-radius: 5px;
-        background-color: #f9f9f9;
+        border-radius: 1rem;
+        background-color: #d4edda; 
+        box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.2);
     }
 
-    #playerList ul {
-        list-style-type: none;
-        padding: 0;
-    }
+        #playerList ul {
+            list-style-type: none;
+            padding: 0;
+        }
 
-    #playerList li {
-        margin: 5px 0;
-    }
+        #playerList li {
+            margin: 5px 0;
+        }
 
     .difficulty-levels {
         margin: 10px 0;
     }
 
-    .difficulty-levels label {
-        margin-right: 15px;
-        font-weight: bold;
-    }
+        .difficulty-levels label {
+            margin-right: 15px;
+            font-weight: bold;
+        }
 
-    .difficulty-levels input[type="radio"] {
-        margin-right: 5px;
-    }
+        .difficulty-levels input[type="radio"] {
+            margin-right: 5px;
+        }
 
     #suggestedCards {
         color: #555;
