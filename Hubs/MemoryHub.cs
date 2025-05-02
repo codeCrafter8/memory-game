@@ -19,6 +19,29 @@ namespace MemoryGame.Hubs
             _hubContext = hubContext;
         }
 
+        private Game InitializeGame(List<string> imagePaths, int timeForTurn)
+        {
+            var cards = new List<Card>();
+            int id = 0;
+
+            foreach (var imagePath in imagePaths)
+            {
+                cards.Add(new Card { Id = id++, ImagePath = imagePath });
+                cards.Add(new Card { Id = id++, ImagePath = imagePath });
+            }
+
+            cards = cards.OrderBy(x => Guid.NewGuid()).ToList();
+
+            return new Game
+            {
+                GameId = Guid.NewGuid().ToString(),
+                Cards = cards,
+                Moves = 0,
+                ImagePaths = imagePaths,
+                TimeForTurn = timeForTurn
+            };
+        }
+
         public async Task StartGameWithImages(string playerName, List<string> imagePaths, int timeForTurn)
         {
             var game = InitializeGame(imagePaths, timeForTurn);
@@ -109,29 +132,6 @@ namespace MemoryGame.Hubs
                 Console.WriteLine($"{DateTime.Now:HH:mm:ss} Serwer wysyła komunikat GameOver do grupy {game.GameId}.");
                 await _hubContext.Clients.Group(gameId).SendAsync("GameOver", game);
             }
-        }
-
-        private Game InitializeGame(List<string> imagePaths, int timeForTurn)
-        {
-            var cards = new List<Card>();
-            int id = 0;
-
-            foreach (var imagePath in imagePaths)
-            {
-                cards.Add(new Card { Id = id++, ImagePath = imagePath });
-                cards.Add(new Card { Id = id++, ImagePath = imagePath });
-            }
-
-            cards = cards.OrderBy(x => Guid.NewGuid()).ToList();
-
-            return new Game
-            {
-                GameId = Guid.NewGuid().ToString(),
-                Cards = cards,
-                Moves = 0,
-                ImagePaths = imagePaths,
-                TimeForTurn = timeForTurn
-            };
         }
 
         private async Task CheckMatch(string gameId, List<Card> flippedCards)

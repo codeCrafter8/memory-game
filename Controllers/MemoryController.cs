@@ -43,6 +43,7 @@ namespace MemoryGame.Controllers
             }
 
             var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads");
+
             if (!Directory.Exists(uploadsFolder))
             {
                 Directory.CreateDirectory(uploadsFolder);

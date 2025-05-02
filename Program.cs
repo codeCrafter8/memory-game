@@ -1,3 +1,20 @@
+/* 
+ 
+nie rób mergów na maina
+
+input -> button
+
+graj jako gospodarz lub jako (widok)
+
+przycks - wybraæ ka¿dego
+
+trojkat?? przy obecnym ruchu, tlo na aktywnego gracza
+
+
+lobby - poczekajlnia
+ 
+ */
+
 using MemoryGame.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
