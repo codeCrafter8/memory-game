@@ -4,7 +4,7 @@
 
 <link href="css/memory.css" rel="stylesheet" />
 
-    <div id="playerSetup" class="setup-container">
+<div id="playerSetup" class="setup-container">
 
         <fieldset>
             <legend>
@@ -25,6 +25,7 @@
             <p style="font-size: 24px; font-weight: 500; text-transform: uppercase; letter-spacing:1px">Lub</p>
             <hr />
             <h2>Rozpocznij nową grę jako host</h2>
+        <span style="font-size: 3rem; font-weight: 800; color: red;">&darr;</span>
         </div>
 
         <fieldset style="margin-top: 20px">
@@ -38,14 +39,12 @@
                     <input type="radio" name="difficulty" id="medium" value="medium" checked />
                     <label style="font-size: 18px" for="medium">MEDIUM</label>
 
-
                     <input type="radio" name="difficulty" id="hard" value="hard" checked />
                     <label style="font-size: 18px" for="hard">HARD</label>
                 </div>
             <label for="timeForTurn" style="margin: 20px 10px 0 0; font-size: 18px">Wybierz czas na ruch</label>
             <input type="number" id="timeForTurn" value=30 />
         </fieldset>
-
 
         <fieldset style="margin-top: 20px; margin-bottom: 20px;">
             <legend>Zestawy</legend>
@@ -90,7 +89,7 @@
                 <button id="backToSetsButton" class="button back"> Cofnij</button>
             </div>
         </div>       
-    </div>
+</div>
 
     <div id="waitingMessage" style="display: none; margin-top: 1rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
@@ -103,7 +102,6 @@
     </div>
 
     <div id="gameInfo" style="display: none;">
-
         <div id="players" style="margin-bottom: 1.5rem;">
         </div>
 
@@ -117,7 +115,6 @@
         </button>
 
         <div id="gameBoard" class="game-board" style="border: 1px solid orange; width: 1000px;"></div>
-
         <div id="moves" style="margin-bottom: 30px;">Liczba ruchów: 0</div>
     </div>
 
@@ -126,7 +123,7 @@
         <p id="modalMessage"></p>
         <button id="modalClose" class="btn btn-primary">OK</button>
     </div>
-    </div>
+</div>
 
 
 
@@ -210,14 +207,12 @@
               selectedCards = selectedCards.filter(path => path !== imagePath);
               cardElement.classList.remove("selected");
             }
-
-            console.log("Wybrane ścieżki:", selectedCards);
           });
 
           cardsPreview.appendChild(cardElement);
         });
 
-                btnSelectAllCards.addEventListener("click", () => {
+         btnSelectAllCards.addEventListener("click", () => {
  
           selectedCards = [...set.imagePaths];
 
@@ -226,10 +221,7 @@
             .forEach(cardEl => {
               cardEl.classList.add("selected");
             });
-
-          console.log("Wybrane ścieżki po selectAll:", selectedCards);
         });
-
         }
 
         document.getElementById("createNewSetButton").addEventListener("click", () => {
@@ -625,8 +617,7 @@
         document.getElementById("modalClose").addEventListener("click", () => {
           document.getElementById("modalOverlay").classList.add("hidden");
         });
-            //}
-
+            
     </script>
     }
 
