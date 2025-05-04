@@ -1,26 +1,49 @@
 ﻿.game-board {
     display: grid;
-    grid-template-columns: repeat(4, var(--normal-card));
-    padding: 1rem;
+    --card-size: 80px;
+    grid-template-columns: repeat(2, var(--card-size));
     gap: 10px;
+    justify-content: center;
     margin: 20px auto;
-    width: calc(100vw - 40px);
-    max-width: 600px;
+    max-width: 100%;
+    border: 10px solid black;
+    padding: 1rem;
+}
+
+@media (min-width: 480px) {
+    .game-board {
+        --card-size: 100px;
+        grid-template-columns: repeat(3, var(--card-size));
+    }
+}
+
+@media (min-width: 768px) {
+    .game-board {
+        --card-size: 120px;
+        grid-template-columns: repeat(4, var(--card-size));
+    }
+}
+
+@media (min-width: 1024px) {
+    .game-board {
+        --card-size: 130px;
+        grid-template-columns: repeat(6, var(--card-size));
+        max-width: calc(6 * var(--card-size) + 5 * 10px + 2rem);
+    }
 }
 
 .card {
-    width: var(--normal-card);
-    height: var(--normal-card);
+    width: var(--card-size);
+    height: var(--card-size);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 1.5rem;
     cursor: pointer;
     border-radius: 1rem;
-    background: linear-gradient(135deg, #f5f5dc, #ffffff);
-    border: 2px solid black;
-    border-radius: 16px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, #f5f5dc, #fff);
+    border: 2px solid #000;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .matched {
@@ -65,18 +88,3 @@
 input[type="file"] {
     display: none;
 }
-
-
-
-@media (max-width: 600px) {
-    .game-board {
-        grid-template-columns: repeat(4, var(--small-card));
-    }
-
-    .card {
-        width: var(--small-card);
-        height: var(--small-card);
-    }
-}
-
-

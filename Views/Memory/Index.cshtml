@@ -4,8 +4,6 @@
 
 <link href="css/memory.css" rel="stylesheet" />
 
-
-<div class="container">
     <div id="playerSetup" class="setup-container">
 
         <fieldset>
@@ -31,8 +29,6 @@
 
         <fieldset style="margin-top: 20px">
             <legend>Ustawienia nowej gry</legend>
-
-            <!---<section style="display: flex; justify-content: center; align-items: center;">->
                 <p style="font-size: 18px">Wybierz poziom trudności</p>
 
                 <div style="display: flex; gap: 1rem; justify-content: center;">
@@ -46,14 +42,9 @@
                     <input type="radio" name="difficulty" id="hard" value="hard" checked />
                     <label style="font-size: 18px" for="hard">HARD</label>
                 </div>
-            <!---</section>-->
-
-
             <label for="timeForTurn" style="margin: 20px 10px 0 0; font-size: 18px">Wybierz czas na ruch</label>
             <input type="number" id="timeForTurn" value=30 />
-
         </fieldset>
-
 
 
         <fieldset style="margin-top: 20px; margin-bottom: 20px;">
@@ -70,9 +61,9 @@
 
         <div id="newSetForm" style="display: none;">
             <h4>Utwórz nowy zestaw kart</h4>
-            <div style="display: flex; justify-content: center; padding: 20px 0; align-items: center; ">
-                <label>Ustaw nazwę zestawu kart:</label>
-                <input type="text" id="setName" placeholder="Podaj nazwę zestawu" />
+            <div style="display: flex; justify-content: center; padding: 20px 0; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <label for="setName">Ustaw nazwę zestawu kart:</label>
+            <input type="text" id="setName" placeholder="Podaj nazwę zestawu" style="padding: 10px 20px; border: none; outline: none; border: 1px solid black;" />
             </div>
 
             <label style="padding: 10px 20px; background: violet; cursor: pointer; margin: 10px 0" for="imageFiles">Wybierz obrazy (PNG, JPG)</label>
@@ -88,22 +79,23 @@
             </div>
 
         </div>
+
         <div id="cardSelection" style="display: none; margin-bottom: 30px;">
             <h4>Wybierz karty z zestawu</h4>
             <div id="suggestedCards"></div>
             <div id="cardsPreview" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;"></div>
-            <div style="margin-top: 1rem;">
-                <button id="selectAllCards" class="button selectAllCards">Zaznacz wszystkie karty</button>
-                <button id="startWithSelectedCardsButton" class="button startWithSelectedCardsButton">Rozpocznij grę z wybranymi kartami</button>
-                <button id="backToSetsButton" class="button backToSetsButton">Cofnij</button>
+            <div class="actions">
+                <button id="selectAllCards" class="button select-all"> Zaznacz wszystkie karty</button>
+                <button id="startWithSelectedCardsButton" class="button start"> Rozpocznij grę</button>
+                <button id="backToSetsButton" class="button back"> Cofnij</button>
             </div>
-        </div>
+        </div>       
     </div>
 
     <div id="waitingMessage" style="display: none; margin-top: 1rem">
         <div id="hostControls" style="margin-top: 1rem; display: none;">
-            <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem; background: linear-gradient(135deg, #c3e6cb, #28a745);">Rozpocznij rozgrywkę</button>
             <div id="playerList"></div>
+        <button id="startGameManuallyButton" style="border-radius: 1rem; padding: 0.5rem 1rem; margin-top: 10px; background: linear-gradient(135deg, #c3e6cb, #28a745);">Rozpocznij rozgrywkę</button>
         </div>
         <div id="waitingForHost" style="margin-top: 1rem; display: none;">
             <span style="letter-spacing: 1px;">Oczekiwanie na rozpoczęcie gry przez hosta...</span>
@@ -124,11 +116,18 @@
             Pomiń turę
         </button>
 
-        <div id="gameBoard" class="game-board"></div>
+        <div id="gameBoard" class="game-board" style="border: 1px solid orange; width: 1000px;"></div>
 
-        <div id="moves">Liczba ruchów: 0</div>
+        <div id="moves" style="margin-bottom: 30px;">Liczba ruchów: 0</div>
     </div>
-</div>
+
+<div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal-window">
+        <p id="modalMessage"></p>
+        <button id="modalClose" class="btn btn-primary">OK</button>
+    </div>
+
+
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
@@ -163,13 +162,13 @@
             cardSets.forEach(set => {
                 const setElement = document.createElement("div");
                 setElement.className = "card-set";
-                const firstImage = set.imagePaths.length > 0 ? set.imagePaths[0] : "/images/placeholder.png"; // Placeholder, jeśli brak obrazka
+                const firstImage = set.imagePaths.length > 0 ? set.imagePaths[0] : "/images/placeholder.png";
                 setElement.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <img src="${firstImage}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;" />
                         <h5 style="margin: 0;">${set.name}</h5>
                     </div>
-                    <button class="btn btn-primary">Wybierz zestaw</button>
+                    <button class="button">Wybierz zestaw</button>
                 `;
                 setElement.querySelector("button").addEventListener("click", () => {
                     selectedSet = set;
@@ -187,47 +186,48 @@
             cardsPreview.innerHTML = "";
             selectedCards = [];
 
-            set.imagePaths.forEach((imagePath, index) => {
-                const cardElement = document.createElement("div");
-                cardElement.className = "card-preview";
-                cardElement.innerHTML = `
-                    <img src="${imagePath}" style="width: 100px; height: 100px;" class="card-previev" />
-                    <input type="checkbox" data-index="${index}" class="checkbox-card"/>
-                `;
-                cardElement.querySelector("input").addEventListener("change", (e) => {
-                    const index = parseInt(e.target.dataset.index);
-                    if (e.target.checked) {
-                        selectedCards.push(imagePath);
-                        cardElement.classList.add("selected"); 
-                    } else {
-                        selectedCards = selectedCards.filter(path => path !== imagePath);
-                        cardElement.classList.remove("selected");
-                    }
-                });
-                cardsPreview.appendChild(cardElement);
-            });
 
-                    btnSelectAllCards.addEventListener("click", () => {
-          // zaznacz wszystkie ścieżki w tablicy
+           set.imagePaths.forEach((imagePath, index) => {
+          const cardElement = document.createElement("div");
+          cardElement.className = "card-preview";
+
+          cardElement.dataset.index = index;
+
+          cardElement.innerHTML = `
+            <img src="${imagePath}" class="card-previev" />
+          `;
+
+          cardElement.addEventListener("click", () => {
+
+            const already = selectedCards.includes(imagePath);
+
+            if (!already) {
+
+              selectedCards.push(imagePath);
+              cardElement.classList.add("selected");
+            } else {
+              selectedCards = selectedCards.filter(path => path !== imagePath);
+              cardElement.classList.remove("selected");
+            }
+
+            console.log("Wybrane ścieżki:", selectedCards);
+          });
+
+          cardsPreview.appendChild(cardElement);
+        });
+
+                btnSelectAllCards.addEventListener("click", () => {
+ 
           selectedCards = [...set.imagePaths];
 
-          // zaznacz każdy checkbox i dodaj klasę do wrappera
           cardsPreview
-            .querySelectorAll("input[type='checkbox']")
-            .forEach(checkbox => {
-              checkbox.checked = true;
-              // idziemy do rodzica .card-preview i dajemy klasę
-              checkbox.closest(".card-preview").classList.add("selected");
+            .querySelectorAll(".card-preview")
+            .forEach(cardEl => {
+              cardEl.classList.add("selected");
             });
+
+          console.log("Wybrane ścieżki po selectAll:", selectedCards);
         });
-            
-            /*btnSelectAllCards.addEventListener("click", () => {
-            selectedCards = [...set.imagePaths];
-            cardsPreview.querySelectorAll("input[type='checkbox']").forEach(checkbox => {
-                checkbox.checked = true;
-               
-            });
-        });*/
 
         }
 
@@ -247,17 +247,17 @@
             const imageFiles = document.getElementById("imageFiles").files;
 
             if (!playerName) {
-                alert("Wpisz swój nick.");
+                 showModal("Wpisz swój nick.");
                 return;
             }
 
             if (!setName) {
-                alert("Wpisz nazwę zestawu.");
+                showModal("Wpisz nazwę zestawu.");
                 return;
             }
 
             if (imageFiles.length < 2) {
-                alert("Dodaj przynajmniej 2 obrazki.");
+                 showModal("Dodaj przynajmniej 2 obrazki.");
                 return;
             }
 
@@ -280,7 +280,7 @@
                 document.getElementById("cardSelection").style.display = "block";
                 showCardSelection(selectedSet);
             } else {
-                alert(result.message);
+                showModal(resultmessage);
             }
         });
 
@@ -288,11 +288,11 @@
             const playerName = document.getElementById("playerName").value;
             const timeForTurn = parseInt(document.getElementById("timeForTurn").value);
             if (selectedCards.length < 2) {
-                alert("Wybierz co najmniej dwie karty, aby rozpocząć grę.");
+                showModal("Wybierz co najmniej dwie karty, aby rozpocząć grę.");
                 return;
             }
             if (isNaN(timeForTurn) || timeForTurn < 5 || timeForTurn > 120) {
-                alert("Czas na ruch musi być między 5 a 120 sekundami.");
+                showModal("Wybierz co najmniej dwie karty, aby rozpocząć grę.");
                 return;
             }
             connection.invoke("StartGameWithImages", playerName, selectedCards, timeForTurn);
@@ -307,7 +307,7 @@
                 connection.invoke("JoinGame", playerName);
                 isHost = false;
             } else {
-                alert("Wpisz swój nick.");
+                showModal("Wpisz swój nick.");
             }
         });
 
@@ -321,12 +321,12 @@
             if (game && game.currentPlayerId === myConnectionId) {
                 connection.invoke("SkipTurn", game.gameId, myConnectionId);
             } else {
-                alert("Nie twoja kolej!");
+                showModal("Nie Twoja kolej!");
             }
         });
 
         connection.on("NoGameAvailable", (message) => {
-            alert(message);
+            showModal(message);
             window.location.reload();
         });
 
@@ -395,19 +395,19 @@
         });
 
         connection.on("NotYourTurn", () => {
-            alert("To nie twój ruch!");
+            showModal("To nie twój ruch!");
         });
 
         connection.on("GameOver", (gameData) => {
             game = gameData;
             renderGame();
             const winner = game.players.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-            alert(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
+           showModal(`Koniec gry! Zwycięzca: ${winner.name}, punkty: ${winner.score}.`);
             clearInterval(turnInterval);
         });
 
         connection.on("PlayerDisconnected", (playerName, gameData) => {
-            alert(`${playerName} rozłączył się.`);
+            showModal(`${playerName} rozłączył się.`);
             game = gameData;
             renderGame();
             clearInterval(turnInterval);
@@ -485,7 +485,7 @@
 
             let html = "<p>Połączeni gracze:</p><ul>";
             game.players.forEach(player => {
-                html += `<li>${player.name} (ID: ${player.connectionId})</li>`;
+                html += `<li>Name: ${player.name} (ID: ${player.connectionId})</li>`;
             });
             html += "</ul>";
 
@@ -515,6 +515,7 @@
 
         function renderGame() {
             const gameBoard = document.getElementById("gameBoard");
+            gameBoard.classList.add("game-board");
             gameBoard.innerHTML = "";
             document.getElementById("moves").textContent = `Ruchy: ${game.moves}`;
 
@@ -545,27 +546,27 @@
              const turnInfo = document.getElementById("turnInfo");
              turnInfo.textContent = `Aktualna tura: ${currentPlayer.name}`;
 
-             const gameBoardRect = gameBoard.getBoundingClientRect();
-             const gameBoardWidth = gameBoardRect.width;
-             const gameBoardHeight = gameBoardRect.height;
-             const totalCards = game.cards.length;
+             //const gameBoardRect = gameBoard.getBoundingClientRect();
+            // const gameBoardWidth = gameBoardRect.width;
+             //const gameBoardHeight = gameBoardRect.height;
+             //const totalCards = game.cards.length;
 
-             const aspectRatio = gameBoardWidth / gameBoardHeight;
-             const sqrtCards = Math.sqrt(totalCards);
-             let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
-             let rows = Math.ceil(totalCards / cols);
+            //const aspectRatio = gameBoardWidth / gameBoardHeight;
+            // const sqrtCards = Math.sqrt(totalCards);
+             //let cols = Math.round(sqrtCards * Math.sqrt(aspectRatio));
+            // let rows = Math.ceil(totalCards / cols);
 
-             while (cols * rows < totalCards) {
-                 cols++;
-                 rows = Math.ceil(totalCards / cols);
-             }
+             //while (cols * rows < totalCards) {
+               //  cols++;
+               //  rows = Math.ceil(totalCards / cols);
+          //   }
 
-             const gap = 5;
-             const totalGapWidth = (cols - 1) * gap;
-             const totalGapHeight = (rows - 1) * gap;
-             const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
-             const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
-             const cardSize = Math.min(cardWidth, cardHeight);
+             //const gap = 5;
+             //const totalGapWidth = (cols - 1) * gap;
+             //const totalGapHeight = (rows - 1) * gap;
+             //const cardWidth = (gameBoardWidth - totalGapWidth) / cols;
+             //const cardHeight = (gameBoardHeight - totalGapHeight) / rows;
+             //const cardSize = Math.min(cardWidth, cardHeight);
 
              //gameBoard.style.gridTemplateColumns = `repeat(${cols}, ${cardSize}px)`;
              //gameBoard.style.gridTemplateRows = `repeat(${rows}, ${cardSize}px)`;
@@ -575,7 +576,6 @@
 
             game.cards.forEach(card => {
             const cardElement = document.createElement("div");
-            // Przypisujemy tylko klasę .card (oraz .matched jeśli trzeba)
             cardElement.className = "card" + (card.isMatched ? " matched" : "");
 
             // cardElement.style.width = `${cardSize}px`;
@@ -590,7 +590,6 @@
                 cardElement.appendChild(img);
             } else {
                 cardElement.innerHTML = "?";
- 
             }
 
             cardElement.onclick = () => {
@@ -615,8 +614,20 @@
                 renderGame();
             }
         });
+
+        function showModal(message) {
+            const overlay = document.getElementById("modalOverlay");
+            document.getElementById("modalMessage").textContent = message;
+            overlay.classList.remove("hidden");
+        }
+
+        document.getElementById("modalClose").addEventListener("click", () => {
+          document.getElementById("modalOverlay").classList.add("hidden");
+        });
+            //}
+
     </script>
-}
+    }
 
 <style>
     html, body {
@@ -624,8 +635,11 @@
         padding: 0;
         min-height: 100vh;
         width: 100vw;
-        overflow-x: hidden;
+       overflow-x: scroll;
+        list-style-type: none;
     }
+
+  
 
     legend {
         background-color: #000;
@@ -657,9 +671,6 @@
         overflow: hidden;
     }
 
-  
-
-
     #players {
         display: flex;
         gap: 10px;
@@ -678,49 +689,6 @@
         font-size: 1.2rem;
         font-weight: bold;
     }
-
-    
-
-    /*.game-board {
-        flex: 1;
-        flex-wrap: wrap;
-        display: grid;
-        gap: 5px;
-        padding: 10px;
-        box-sizing: border-box;
-        overflow: hidden;
-    }*/
-
-    /*.card {
-        background: #f0f0f0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        cursor: pointer;
-        border-radius: 5px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    .matched {
-        background: #90ee90;
-    }*/
-
-    /*.card {
-
-        width: 130px;
-        width: 130px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        cursor: pointer;
-        border-radius: 1rem;
-        background: linear-gradient(135deg, #f5f5dc, #ffffff);
-        border: 2px solid black;
-        border-radius: 16px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }*/
 
     #waitingMessage {
         text-align: center;
@@ -741,11 +709,6 @@
         .card-set:hover {
             background: #f0f0f0;
         }
-
-    .card-preview {
-        display: inline-block;
-        text-align: center;
-    }
 
     .setup-container h2 {
         margin-top: 2rem;
@@ -820,35 +783,71 @@
         font-style: italic;
     }
 
+    .cards-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        flex-direction: row;
+        gap: 10px;
+        justify-content: center;
+        padding: 1rem 0;
+
+    }
+
     .card-preview {
-       
-        border: 1px solid blue;
-        padding: 5px;
+        width: 100px;
+        height: 100px;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        overflow: hidden;
         cursor: pointer;
-        transition: background-color 0.3s ease-in-out;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        transition: background-color 0.2s, transform 0.2s;
     }
 
-    .card-preview.selected {
-        background-color: green;
+        .card-preview:hover {
+            transform: scale(1.05);
+        }
+        .card-preview.selected {
+            background: green;
+        }
+
+        .card-preview img {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: cover;
+        }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 1rem;
     }
 
-    .card-preview:hover {
-        background: black !important;
-        
+    .button {
+        padding: 0.5rem 1rem;
+        border: none;
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
     }
 
-    .checkbox-card {
-        accent-color: white;
-        border: 1px solid black;
-        padding: 50px;
-        width: 20px;
-        height: 20px;
-    }
+        .button.select-all {
+            background: #28a745;
+        }
 
-    .checkbox-card:checked {
-            accent-color: white;
-            border: 1px solid black;
-    }
+        .button.start {
+            background: #007bff;
+        }
+
+        .button.back {
+            background: #dc3545;
+        }
+
+
 
     .selectAllCards {
         background: green;
@@ -863,10 +862,39 @@
         background: red;
     }
 
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .modal-window {
+        background: white;
+        padding: 1.5rem 2rem;
+        border-radius: 0.5rem;
+        max-width: 90%;
+        width: 300px;
+        padding: 1rem 2rem;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .modal-window p {
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
 
 
-
-
-   
 
 </style>
