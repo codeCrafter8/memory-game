@@ -66,16 +66,7 @@ input[type="file"] {
     display: none;
 }
 
-.upload-file {
-    border: 1px solid purple;
-    display: inline-block;
-    padding: .5rem 1rem;
-    cursor: pointer;
-    color: white;
-    background: black;
-    border-radius: 1rem;
-    letter-spacing: 1px;
-}
+
 
 @media (max-width: 600px) {
     .game-board {
